@@ -1,10 +1,26 @@
+% init
+%run('~/work/tools/XHPS_2021/HPS_simulation/hps_startup.m')
+load('states.mat');
+state = states;
+
 %% settings
 
-debug=0;
+% sim_time %TODO: warning
+sim_step = core_params.dt_sim ;
+t_start = datenum(HPS_convertMJD2CalendarDate(core_params.start_date(1)));
+
+
+vidName='time1'
 
 % seconds between body frame plots
-step = 100; 
+step = 20; 
 
+% Vid quality
+width = 1280;
+height = 720;
+
+% plot length
+endframe=length(state);
 
 %% Plot orbit with satellite body frame
 
@@ -12,34 +28,42 @@ step = 100;
 % size of space around plot TODO: get from Vector lenght
 scale = 1.2;
 
-state = states;
-fig = figure;
 
-% animation frame counter
-k=0;
+fig = figure('visible','off');
+plot3(state(:,11),state(:,12),state(:,13))
 
-endframe=length(state);
-if debug
-	endframe= step;	
-else
-	clear aniVec
-end
+
+set(fig, 'Position',  [100, 100, width, height])
+
+x = xlim*scale;
+y = ylim*scale;
+xlim(x)
+ylim(y)
+
+%parfor_progress(floor(endframe/step));
+m=floor(endframe/step);
+fprintf('Progress:\n');
+fprintf(['\n' repmat('.',1,m) '\n\n']);
+
 
 % frame loop (plot state for each frame)
-for i=1:step:endframe
-
-	k=k+1;
+parfor i=1:floor(endframe/step)
 	clf
+  %D = parallel.pool.DataQueue
 
+
+	k=i*step - step+1;
+	t = t_start + (k-1) * seconds(sim_step);
+    
 	% Plot orbit line 
 	plot3(state(:,11),state(:,12),state(:,13))
 	hold on 
 
 	%plot starting (initial) Point
-	plot3(state(i,11),state(i,12),state(i,13),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
+	plot3(state(k,11),state(k,12),state(k,13),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
 
 	%plot initial velocity vector
-	%quiver3(state(i,11),state(i,12),state(i,13),state(1,8)*500,state(1,9)*500,state(1,10)*500,'linewidth',2)
+	%quiver3(state(k,11),state(k,12),state(k,13),state(1,8)*500,state(1,9)*500,state(1,10)*500,'linewidth',2)
 
 	%plot inertial kos
 	a=6771000;
@@ -54,20 +78,20 @@ for i=1:step:endframe
 
 
 	%% Plot body fixed frame 
-	q_i = state(i,4:7);
+	q_k = state(k,4:7);
 
 	%transform inertial kos to body fixed by quaternion multiplication
 	%(xrvar qnefgryyhat qrf Beovgny Xbs in eci daher vecbyquattransposed)
-	x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_i);
-	y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_i);
-	z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_i);
+	x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_k);
+	y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
+	z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);
 
 
 	% Vektor [1*a/8*1000,0,0] turn with quaternion 
 
-	quiver3(state(i,11),state(i,12),state(i,13),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
-	quiver3(state(i,11),state(i,12),state(i,13),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
-	quiver3(state(i,11),state(i,12),state(i,13),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
+	quiver3(state(k,11),state(k,12),state(k,13),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
+	quiver3(state(k,11),state(k,12),state(k,13),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
+	quiver3(state(k,11),state(k,12),state(k,13),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
 
 
 	%% plot earth 
@@ -77,31 +101,28 @@ for i=1:step:endframe
 	ax = axesm('globe','Geoid',grs80,'Grid','on', ...
 	'GLineWidth',1,'GLineStyle','-',...
 	'Gcolor','black','Galtitude',100);
-	sax.Position = [0 0 1 1];
 	box off
-	view([90 8])
-	%set(gca, 'CameraPosition', [100 5000 2000]);
+	view([90 8]);
 
-	if(i==1)
-		drawnow;
-		pos = get(fig,'Position');
-		width = pos(3);
-		height = pos(4);
-		x = xlim*scale;
-	 	y = ylim*scale;
-	end
+	%set(gca, 'CameraPosition', [100 5000 2000]);
 
 	xlim(x);
 	ylim(y);
+	xlabel(datestr(t)) 
 
-	aniVec(k) = getframe(fig, [10 10 width-10 height-10]);
+	aniVec(i) = getframe(fig, [0 0 width height]);
+    
+	fprintf('\b#\n');
 
 end
 
-	wout = VideoWriter('orbit_animation');
-	wout.FrameRate = 3;
-	open(wout);
-	writeVideo(wout,aniVec);
-	close(wout);
+save('aniVec','aniVec', '-v7.3')
 
-clear k step x_axis_body y_axis_body z_axis_body q_i i_time i state z_axis y_axis x_axis axis_length
+wout = VideoWriter(vidName);
+wout.FrameRate = 5;
+open(wout);
+writeVideo(wout,aniVec);
+close(wout);
+
+
+

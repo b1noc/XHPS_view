@@ -3,14 +3,14 @@
 load('states.mat');
 
 %% settings
-vidName='vid1';
+vidName='vid2';
 
 % sim_time %TODO: warning
 sim_step = core_params.dt_sim ;
 t_start = datenum(HPS_convertMJD2CalendarDate(core_params.start_date(1)));
 
 % step includes only every step'th datapoint from states.mat to reduce filesize and rendering time
-step = 10;
+step = 50;
 res = '720p';
 view = [0 20];
 

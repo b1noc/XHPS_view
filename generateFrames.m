@@ -97,17 +97,39 @@ parfor i=1:ie
     
     grs80 = referenceEllipsoid('grs80','m');
     
-    ax = axesm('globe','Geoid',grs80,'Grid','on', ...
-        'GLineWidth',1,'GLineStyle','-',...
+    ax = axesm('globe','Geoid',grs80,'Grid','off', ...
+    	  'GLineWidth',1,'GLineStyle','-',...
         'Gcolor','black','Galtitude',100);
     box off
+
+		image_file = 'http://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Land_ocean_ice_2048.jpg/1024px-Land_ocean_ice_2048.jpg';
+% Load Earth image for texture map
+		cdata = imread(image_file);
+
+		% cdata = load('Earth_fig_cdata');
+		alpha   = 1; % globe transparency level, 1 = opaque, through 0 = invisible
+		erad    = 6371008.7714; % equatorial radius (meters)
+		prad    = 6371008.7714; % polar radius (meters)
+		npanels = 180;   % Number of globe panels around the equator deg/panel = 360/npanels
+
+		[x, y, z] = ellipsoid(0, 0, 0, erad, erad, prad, npanels);
+		globe = surf(x, y, -z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+
+		% Set image as color data (cdata) property, and set face color to indicate
+		% a texturemap, which Matlab expects to be in cdata. Turn off the mesh edges.
+		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', alpha, 'EdgeColor', 'none');
+		%%axis equal
+
+
+
+
     view(angle);
     %view([x_axis_body(2) x_axis_body(3)]);
     
     %set(gca, 'CameraPosition', [100 5000 2000]);
     
-    xlim(x);
-    ylim(y);
+    %xlim(x);
+    %ylim(y);
     xlabel(datestr(t))
     
     aniVec(i) = getframe(fig, [0 0 width height]);

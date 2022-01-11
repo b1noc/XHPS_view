@@ -54,8 +54,6 @@ aniVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
 for i=1:ie
     clf
-    %D = parallel.pool.DataQueue
-    
     
     k=i*step - step+1;
     tstr = datestr(t_start + (k-1) * seconds(sim_step));
@@ -66,11 +64,16 @@ for i=1:ie
     hold on
     
     %plot starting (initial) Point
-%    plot3(state11(i),state12(i),state13(i),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
+    %plot3(state11(i),state12(i),state13(i),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
+    [x, y, z] = ellipsoid(state11(i), state12(i), state13(i), 50, 50, 50, 20);
+    shuttle=surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+    %set(shuttle, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', alpha, 'EdgeColor', 'none');
+		
+
     
-    %plot initial velocity vector
+    %plot velocity vector
     quiver3(state11(i),state12(i),state13(i),state810(i,1)*500,state810(i,2)*500,state810(i,3)*500,'linewidth',2)
-    
+     
     %plot inertial kos
     a=6771000;
     axis_length = 1*a/8; %length of coordinate system axis
@@ -94,19 +97,20 @@ for i=1:ie
     
     
     % Vektor [1*a/8*1000,0,0] turn with quaternion
-    quiver3(state11(i),state12(i),state13(i),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
-    quiver3(state11(i),state12(i),state13(i),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
-    quiver3(state11(i),state12(i),state13(i),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
+    %quiver3(state11(i),state12(i),state13(i),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
+    %quiver3(state11(i),state12(i),state13(i),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
+    %quiver3(state11(i),state12(i),state13(i),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
     
     
     %% plot earth
+    box off
+		axis vis3d off
     
     grs80 = referenceEllipsoid('grs80','m');
     
     ax = axesm('globe','Geoid',grs80,'Grid','off', ...
     	  'GLineWidth',1,'GLineStyle','-',...
         'Gcolor','black','Galtitude',100);
-    box off
 
     image_file = 'http://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Land_ocean_ice_2048.jpg/1024px-Land_ocean_ice_2048.jpg';
 % Load Earth image for texture map
@@ -126,12 +130,27 @@ for i=1:ie
     deg_rot = t/3600*15;
 
     rotate(globe, direction, deg_rot, origin);
+   
+    % velocity vector
+    velocity = [state810(i,1)*500,state810(i,2)*500,state810(i,3)*500];
+    % position of satelite
+    satPos = [state11(i) state12(i) state13(i)];
+    satView = satPos./norm(satPos);
+
+		orbPlaneA = [state11(1) state12(1) state13(1)] ;
+		orbPlaneB = [state11(2) state12(2) state13(2)] ;
+		orbPlaneC = [state11(3) state12(3) state13(3)] ;
+		orbNorm = cross(orbPlaneB-orbPlaneA,orbPlaneC-orbPlaneA);
 
 
+    campos('manual')
     view(angle);
-
-    %view([x_axis_body(2) x_axis_body(3)]); 
-    %set(gca, 'CameraPosition', [100 5000 2000]);
+    camlookat(shuttle)
+    
+    campos(satView*1e8*.9)
+    %camtarget(satPos+velocity)
+    camtarget([0 0 0])
+    camup([orbNorm(1) orbNorm(2) orbNorm(3)])
     
     xlim(xl);
     ylim(yl);

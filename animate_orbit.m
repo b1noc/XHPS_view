@@ -10,13 +10,14 @@ sim_step = core_params.dt_sim ;
 t_start = datenum(HPS_convertMJD2CalendarDate(core_params.start_date(1)));
 
 % step includes only every step'th datapoint from states.mat to reduce filesize and rendering time
-step = 50;
-res = '720p';
+step = 5;
+res = '1080p';
 view = [0 20];
+duration = 10; % seconds
+debug = 1;
 
-frameVec = generateFrames(states, step, sim_step, t_start, view, res);
+frameVec = generateFrames(states, step, sim_step, t_start, view, res, debug);
 
-saveVid(vidName, 5, frameVec)
-
-
-
+if debug ~= 1
+	saveVid(vidName, duration, frameVec)
+end

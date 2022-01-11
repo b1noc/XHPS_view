@@ -1,7 +1,7 @@
-function aniVec = generateFrames(states, step, sim_step, t_start, angle, res)
+function aniVec = generateFrames(states, step, sim_step, t_start, angle, res, debug)
 
-if isempty(gcp('nocreate'))
-    parpool;
+if isempty(gcp('nocreate')) && debug ~= 1
+   parpool;
 end
 
 endframe=length(states);
@@ -26,19 +26,22 @@ switch res
 		height = 1080;
 end
 
-fig = figure('visible','off');
-%fig = figure;
-plot3(state11,state12,state13)
+if debug == 1
+    fig = figure;
+else
+    fig = figure('visible','off');
+end
 
-set(fig, 'Position',  [100, 100, width, height])
+plot3(state11,state12,state13);
+set(fig, 'Position',  [100, 100, width, height]);
 
-x = xlim*scale;
-y = ylim*scale;
-xlim(x)
-ylim(y)
+xl = xlim*scale;
+yl = ylim*scale;
+xlim(xl)
+ylim(yl)
 ie = floor(endframe/step)+1;
 if ie > length(states)
-	ie = length(states)
+	ie = length(states);
 end
 
 
@@ -46,15 +49,18 @@ m=ie;
 fprintf('Progress:\n');
 fprintf(['\n' repmat('.',1,m) '\n\n']);
 
+%aniVec(ie)=0;
+aniVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
-parfor i=1:ie
+for i=1:ie
     clf
     %D = parallel.pool.DataQueue
     
     
     k=i*step - step+1;
-    t = t_start + (k-1) * seconds(sim_step);
-    
+    tstr = datestr(t_start + (k-1) * seconds(sim_step));
+    t = t_start + (k-1) * sim_step;
+       
     % Plot orbit line
     plot3(state11,state12,state13)
     hold on
@@ -102,41 +108,46 @@ parfor i=1:ie
         'Gcolor','black','Galtitude',100);
     box off
 
-		image_file = 'http://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Land_ocean_ice_2048.jpg/1024px-Land_ocean_ice_2048.jpg';
+    image_file = 'http://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Land_ocean_ice_2048.jpg/1024px-Land_ocean_ice_2048.jpg';
 % Load Earth image for texture map
-		cdata = imread(image_file);
+    cdata = imread(image_file);
+    %cdata = load('Earth_fig_cdata');
+    alpha   = .6; % globe transparency level, 1 = opaque, through 0 = invisible
+    erad    = a ;%6371008.7714; % equatorial radius (meters)
+    prad    = a; %6371008.7714; % polar radius (meters)
+    npanels = 180;   % Number of globe panels around the equator deg/panel = 360/npanels
 
-		% cdata = load('Earth_fig_cdata');
-		alpha   = 1; % globe transparency level, 1 = opaque, through 0 = invisible
-		erad    = 6371008.7714; % equatorial radius (meters)
-		prad    = 6371008.7714; % polar radius (meters)
-		npanels = 180;   % Number of globe panels around the equator deg/panel = 360/npanels
+    [x, y, z] = ellipsoid(0, 0, 0, erad, erad, prad, npanels);
+    globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+    set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', alpha, 'EdgeColor', 'none');
 
-		[x, y, z] = ellipsoid(0, 0, 0, erad, erad, prad, npanels);
-		globe = surf(x, y, -z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+    direction = [0 0 1];
+    origin = [0 0 0]; 
+    deg_rot = t/3600*15;
 
-		% Set image as color data (cdata) property, and set face color to indicate
-		% a texturemap, which Matlab expects to be in cdata. Turn off the mesh edges.
-		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', alpha, 'EdgeColor', 'none');
-		%%axis equal
-
-
+    rotate(globe, direction, deg_rot, origin);
 
 
     view(angle);
-    %view([x_axis_body(2) x_axis_body(3)]);
-    
+
+    %view([x_axis_body(2) x_axis_body(3)]); 
     %set(gca, 'CameraPosition', [100 5000 2000]);
     
-    %xlim(x);
-    %ylim(y);
-    xlabel(datestr(t))
+    xlim(xl);
+    ylim(yl);
+    xlabel(tstr)
     
-    aniVec(i) = getframe(fig, [0 0 width height]);
+    if debug == 1
+			drawnow;
+		else
+			aniVec(i) = getframe(fig, [0 0 width height]);
+		end
     
     fprintf('\b#\n');
     
 end
 
-save('aniVec','aniVec', '-v7.3')
+	if debug ~= 1
+		save('aniVec','aniVec', '-v7.3')
+	end
 end

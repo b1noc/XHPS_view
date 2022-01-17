@@ -1,6 +1,6 @@
 function aniVec = generateFrames(states, step, sim_step, t_start, angle, res, debug)
 
-if isempty(gcp('nocreate')) && debug ~= 1
+if isempty(gcp('nocreate')) && debug == 0
    parpool;
 end
 
@@ -26,7 +26,27 @@ switch res
 		height = 1080;
 end
 
+zoom = 50;
+camMode = 'around';
+stlfactor = 1e-1;
+
+% impoted STL object
+fv = stlread('jeb.stl');
+
 if debug == 1
+    points=fv.Points*stlfactor;
+	jeb = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+	view([0 0])
+	axis equal
+	%xdata = get(jeb,'xdata');
+	%ydata = get(jeb,'ydata');
+	%zdata = get(jeb,'zdata');
+	%figure
+	%jebweb = surf(xdata,ydata,zdata);
+end
+
+
+if debug > 0
     fig = figure;
 else
     fig = figure('visible','off');
@@ -52,38 +72,65 @@ fprintf(['\n' repmat('.',1,m) '\n\n']);
 %aniVec(ie)=0;
 aniVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
+
+
 for i=1:ie
     clf
     
     k=i*step - step+1;
     tstr = datestr(t_start + (k-1) * seconds(sim_step));
     t = t_start + (k-1) * sim_step;
-       
+
+	
     % Plot orbit line
     plot3(state11,state12,state13)
     hold on
     
-    %plot starting (initial) Point
+%% calculate satellite and camera position vectors
+	% velocity vector
+    velocity = [state810(i,1)*500,state810(i,2)*500,state810(i,3)*500];
+	vn = velocity./norm(velocity);
+	vfront = vn*zoom;
+    % position of satelite
+    satPos = [state11(i) state12(i) state13(i)];
+    sn = satPos./norm(satPos);
+    satView = satPos+sn*zoom;
+
+    orbPlaneA = [state11(1) state12(1) state13(1)] ;
+    orbPlaneB = [state11(2) state12(2) state13(2)] ;
+    orbPlaneC = [state11(3) state12(3) state13(3)] ;
+    orbNorm = cross(orbPlaneB-orbPlaneA,orbPlaneC-orbPlaneA);
+    
+
+%% plot satellite 
+		% 2D circle
     %plot3(state11(i),state12(i),state13(i),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
+
+		% 3D sphere
     [x, y, z] = ellipsoid(state11(i), state12(i), state13(i), 50, 50, 50, 20);
     shuttle=surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
     %set(shuttle, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', alpha, 'EdgeColor', 'none');
-		
 
+    %jeb = trimesh(fv);
+    points=fv.Points*stlfactor+satPos;
+	jeb = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+		%jeb = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
+
+    
     
     %plot velocity vector
     quiver3(state11(i),state12(i),state13(i),state810(i,1)*500,state810(i,2)*500,state810(i,3)*500,'linewidth',2)
      
     %plot inertial kos
     a=6771000;
-    axis_length = 1*a/8; %length of coordinate system axis
+    axis_length = a; %length of coordinate system axis
     x_axis= [axis_length;0;0];
     y_axis= [0;axis_length;0];
     z_axis= [0;0;axis_length];
     
-    quiver3(0,0,0,axis_length*1.5,0,0,'linewidth',3,'color', 'blue')
-    quiver3(0,0,0,0,axis_length*1.5,0,'linewidth',3,'color', 'red')
-    quiver3(0,0,0,0,0,axis_length*1.5,'linewidth',3,'color', 'green')
+    %quiver3(0,0,0,axis_length*1.5,0,0,'linewidth',3,'color', 'blue')
+    %quiver3(0,0,0,0,axis_length*1.5,0,'linewidth',3,'color', 'red')
+    %quiver3(0,0,0,0,0,axis_length*1.5,'linewidth',3,'color', 'green')
     
     
     %% Plot body fixed frame
@@ -116,7 +163,7 @@ for i=1:ie
 % Load Earth image for texture map
     cdata = imread(image_file);
     %cdata = load('Earth_fig_cdata');
-    alpha   = .6; % globe transparency level, 1 = opaque, through 0 = invisible
+    alpha   = .8; % globe transparency level, 1 = opaque, through 0 = invisible
     erad    = a ;%6371008.7714; % equatorial radius (meters)
     prad    = a; %6371008.7714; % polar radius (meters)
     npanels = 180;   % Number of globe panels around the equator deg/panel = 360/npanels
@@ -124,49 +171,56 @@ for i=1:ie
     [x, y, z] = ellipsoid(0, 0, 0, erad, erad, prad, npanels);
     globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
     set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', alpha, 'EdgeColor', 'none');
-
+   % set(jeb, 'FaceColor', 'blue', 'EdgeColor', 'blue');
+    
     direction = [0 0 1];
     origin = [0 0 0]; 
     deg_rot = t/3600*15;
 
     rotate(globe, direction, deg_rot, origin);
    
-    % velocity vector
-    velocity = [state810(i,1)*500,state810(i,2)*500,state810(i,3)*500];
-    % position of satelite
-    satPos = [state11(i) state12(i) state13(i)];
-    satView = satPos./norm(satPos);
-
-		orbPlaneA = [state11(1) state12(1) state13(1)] ;
-		orbPlaneB = [state11(2) state12(2) state13(2)] ;
-		orbPlaneC = [state11(3) state12(3) state13(3)] ;
-		orbNorm = cross(orbPlaneB-orbPlaneA,orbPlaneC-orbPlaneA);
-
+ %% TODO: fix rotation. 
+%rotate(jeb, [1 0 0], 90, satPos);
 
     campos('manual')
     view(angle);
-    camlookat(shuttle)
-    
-    campos(satView*1e8*.9)
-    %camtarget(satPos+velocity)
-    camtarget([0 0 0])
-    camup([orbNorm(1) orbNorm(2) orbNorm(3)])
+    switch camMode 
+		case 'follow'
+            camtarget(satPos)
+			camlookat(jeb)
+			campos(satPos+vfront)
+			camup(satPos);
+		case 'around'
+            camtarget([0 0 0])
+            camlookat(jeb)
+			campos(satView)
+			camup(orbNorm)
+            %camlookat(jeb)
+	end
+	%TODO: Add a camera light, and tone down the specular highlighting
+	%camlight('headlight');
+	%material('dull');
+    %shading faceted; 
+
     
     xlim(xl);
     ylim(yl);
     xlabel(tstr)
     
-    if debug == 1
-			drawnow;
-		else
-			aniVec(i) = getframe(fig, [0 0 width height]);
-		end
+    if debug == 2
+		drawnow;
+    else if debug == 1
+		drawnow;
+		break;
+	else
+		aniVec(i) = getframe(fig, [0 0 width height]);
+	end
     
     fprintf('\b#\n');
     
 end
 
-	if debug ~= 1
+	if debug == 0
 		save('aniVec','aniVec', '-v7.3')
 	end
 end

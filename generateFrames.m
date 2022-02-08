@@ -1,10 +1,5 @@
 function frameVec = generateFrames(states, settings, debug)
 
-%% Launching parpool for multithreadding
-if isempty(gcp('nocreate')) && debug == 0
-   parpool;
-end
-
 %% Setting settings
 % Defining default values for unspecified user settings
 def = struct(	'step', 1, ...

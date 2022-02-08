@@ -238,7 +238,7 @@ for i=1:ie
 %% Equalize axes and Framesize
     xlim(xl);
     ylim(yl);
-    title(tstr);
+	annotation('textbox', [.01,.96, 0.1, 0.03], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
     
 
 %% Generate frame from current plot

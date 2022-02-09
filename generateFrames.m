@@ -16,6 +16,7 @@ def = struct(	'step', 1, ...
 				'progress', 1, ...
 				'stlfactor', 1e-1, ...
 				'stlfile', 'res/jeb.stl', ...
+				'encpath', 'res/', ...
 				'stlBaseColor', 'black', ...
 				'stlEdgeColor', 'green', ...
 				'earthfile', 'res/earth.jpg', ...
@@ -57,11 +58,24 @@ end
 %% DEBUG-mode
 % Display loaded stl file in figure (DEBUG-mode)
 if debug == 1
-    points=fv.Points*def.stlfactor;
-	ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-	set(ship, 'FaceColor', def.stlBaseColor, 'EdgeColor', def.stlEdgeColor);
-	view([0 0])
-	axis equal
+	figure
+	if strcmp(def.satelliteModel, 'stl')
+		points=fv.Points*def.stlfactor;
+		ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+		set(ship, 'FaceColor', def.stlBaseColor, 'EdgeColor', def.stlEdgeColor);
+		view([0 0])
+		axis equal
+	elseif strcmp(def.satelliteModel, 'enc')
+		et = load(append(def.encpath, 'et.txt.'));
+		nt = load(append(def.encpath, 'nt.txt.'));
+		nodes = plotSat(et,nt);
+		for i = 1:4:length(nodes)
+			nn = nodes(i:i+3,:)*8;
+			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
+		end
+		view([0 0])
+		axis equal
+	end
 end
 
 % Display video figure in DEBUG-mode
@@ -141,6 +155,18 @@ for i=1:ie
 	ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
 	set(ship, 'FaceColor', def.stlBaseColor, 'EdgeColor', def.stlEdgeColor);
 	%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
+	elseif strcmp(def.satelliteModel, 'enc')
+		[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
+		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
+		et = load(append(def.encpath, 'et.txt.'));
+		nt = load(append(def.encpath, 'nt.txt.'));
+		nodes = plotSat(et, nt);
+        r_com = [1.5615 0.9720 -0.3310];
+
+		for i = 1:4:length(nodes)
+			nn = (nodes(i:i+3,:)-r_com)*200+satPos;
+			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
+		end
 	end
 
 
@@ -237,7 +263,7 @@ for i=1:ie
     
 
 %% Generate frame from current plot
-    if debug == 3
+    if debug == 2
 		drawnow;
     else if debug > 0
 		drawnow;

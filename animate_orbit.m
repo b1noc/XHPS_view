@@ -54,7 +54,7 @@ settings.zoom = 10e2;
 
 % Loading a 3D model of the satellite
 % - none -> no satellite model displayed
-% - enr	 -> load Element-, Node-, and Reflexion coefficient table provided by the HPS library (path needs to be specified with settings.enrfile)
+% - enc	 -> load Element-, Node-, and Reflexion coefficient tables (et.txt, nt.txt, ct.txt) provided by Ansys (path needs to be specified with settings.encFile)
 % - stl  -> load a local stl file (path needs to be specified with settings.stlfile)
 settings.satelliteModel = 'stl';
 

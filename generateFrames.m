@@ -14,7 +14,7 @@ def = struct(	'step', 1, ...
 				'satelliteModel', 'none', ...
 				'viewAngle', [0 90], ...
 				'progress', 1, ...
-				'stlfactor', 1e-1, ...
+				'satFactor', 1, ...
 				'stlfile', 'res/jeb.stl', ...
 				'encpath', 'res/', ...
 				'stlBaseColor', 'black', ...
@@ -63,7 +63,7 @@ if debug == 1
 	figure
 	hold on
 	if strcmp(def.satelliteModel, 'stl')
-		points=fv.Points*def.stlfactor;
+		points=fv.Points*def.satFactor;
 		ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
 		set(ship, 'FaceColor', def.stlBaseColor, 'EdgeColor', def.stlEdgeColor);
 		view([0 0])
@@ -71,7 +71,7 @@ if debug == 1
 	elseif strcmp(def.satelliteModel, 'enc')
 		nodes = plotSat(def.encpath, [0 0 0 1]);
 		for j = 1:4:length(nodes)
-			nn = (nodes(j:j+3,:));
+			nn = (nodes(j:j+3,:))*def.satFactor;
 			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
 		end
 		view([0 0])
@@ -152,7 +152,7 @@ for i=1:ie
     
 	elseif strcmp(def.satelliteModel, 'stl')
 %% STL sat
-    points=fv.Points*def.stlfactor+satPos;
+    points=fv.Points*def.satFactor+satPos;
 	ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
 	set(ship, 'FaceColor', def.stlBaseColor, 'EdgeColor', def.stlEdgeColor);
 	%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
@@ -162,7 +162,7 @@ for i=1:ie
 		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
 		nodes = plotSat(def.encpath, vSatOri(i,:));
 		for j = 1:4:length(nodes)
-			nn = (nodes(j:j+3,:))*2000000+satPos;
+			nn = (nodes(j:j+3,:))*def.satFactor+satPos;
 			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
 		end
 	end

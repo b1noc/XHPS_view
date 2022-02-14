@@ -21,6 +21,7 @@ def = struct(	'step', 1, ...
 				'stlEdgeColor', 'green', ...
 				'earthfile', 'res/earth.jpg', ...
 				'earthPanels', 180, ...
+				'showSatCoordinates', 1, ...
 				'showEarthInertial', 1 ...
 			);
 
@@ -182,30 +183,32 @@ for i=1:ie
 
 	if def.showEarthInertial
 		axis_length = 1.5*r_earth; %length of coordinate system axis
-		x_axis= [axis_length;0;0];
-		y_axis= [0;axis_length;0];
-		z_axis= [0;0;axis_length];
-		
 		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', 'blue')
 		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', 'red')
 		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', 'green')
 	end
 
 %% Plot body fixed frame
-    q_k = vSatOri(i,:);
-    
-    %transform inertial kos to body fixed by quaternion multiplication
-    %(xrvar qnefgryyhat qrf Beovgny Xbs in eci daher vecbyquattransposed)
-    x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_k);
-    y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
-    z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);
-    
-    
-    % Vektor [1*a/8*1000,0,0] turn with quaternion
-    %quiver3(state11(i),state12(i),state13(i),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
-    %quiver3(state11(i),state12(i),state13(i),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
-    %quiver3(state11(i),state12(i),state13(i),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
-    
+
+	if def.showSatCoordinates
+		axis_length = r_earth/2; %length of coordinate system axis
+
+		q_k = vSatOri(i,:);
+		
+		x_axis= [axis_length;0;0];
+		y_axis= [0;axis_length;0];
+		z_axis= [0;0;axis_length];
+
+		%transform inertial kos to body fixed by quaternion multiplication
+		%(xrvar qnefgryyhat qrf Beovgny Xbs in eci daher vecbyquattransposed)
+		x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_k);
+		y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
+		z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);
+		
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
+	end
     
 %% Plot earth
     box off
@@ -220,7 +223,6 @@ for i=1:ie
 	% Load Earth image for texture map
     image_file = def.earthfile;
     cdata = imread(image_file);
-	% globe transparency level, 1 = opaque, through 0 = invisible
 
 	% rendering earth
     [x, y, z] = ellipsoid(0, 0, 0, a, a, a, def.earthPanels);

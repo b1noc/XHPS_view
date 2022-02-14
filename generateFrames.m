@@ -22,6 +22,7 @@ def = struct(	'step', 1, ...
 				'earthfile', 'res/earth.jpg', ...
 				'earthPanels', 180, ...
 				'showSatCoordinates', 1, ...
+				'showECEF', 1, ...
 				'showECI', 1 ...
 			);
 
@@ -113,12 +114,15 @@ end
 for i=1:ie
     clf
     
-%% Calculate time
+%% Calculate time and rotation
 	% Calculating index k from original states matrix
     k=i*def.step - def.step;
 	% Calculating timestamp of current state by adding x*sim_step to the starttime
     tstr = datestr(def.t_start + k * seconds(def.sim_step));
     t = def.t_start + k * def.sim_step;
+
+	% Calculating earths rotation angle based on time
+    deg_rot = t/3600*15;
 
 %% Calculate satellite and camera position vectors
 	% velocity vector
@@ -172,7 +176,7 @@ for i=1:ie
     %plot velocity vector
     quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2)
      
-%% Plot inertial kos
+%% Plot ECI
     a=6771000;
 	%TODO: replace a by r_earth
 	r_earth=6771000;
@@ -184,7 +188,16 @@ for i=1:ie
 		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', 'green')
 	end
 
-%% Plot body fixed frame
+%% Plot ECEF
+	if def.showECEF
+		axis_length = 1.5*r_earth; %length of coordinate system axis
+		ecef = HPS_computeDCMFromRotationAngle( deg2rad(deg_rot), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
+		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', 'blue')
+		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', 'red')
+		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', 'green')
+	end
+	
+%% Plot satellite coord system
 
 	if def.showSatCoordinates
 		axis_length = r_earth/2; %length of coordinate system axis
@@ -227,7 +240,6 @@ for i=1:ie
     
 
 %% Rotate Earth
-    deg_rot = t/3600*15;
     rotate(globe, [0 0 1], deg_rot, [0 0 0]);
    
 	%% TODO: enable rotation of ship. 

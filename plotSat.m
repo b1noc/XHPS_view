@@ -1,8 +1,11 @@
-function nodes = plotSatellite(et,nt, q_k)
+function nodes = plotSatellite(path, q_k)
 
+	et = load(append(path, 'et.txt.'));
+	nt = load(append(path, 'nt.txt.'));
 
 	n = max(et(:,1));
 	nodes = [];
+	r_com = [1.5615 0.9720 -0.3310];
 
     for k = 1:n
 
@@ -14,14 +17,17 @@ function nodes = plotSatellite(et,nt, q_k)
         ny =  nt(et(k,6),2);
         nz =  nt(et(k,6),3);
 
-        N1  = HPS_transformVecByQuatTransposed([nx;ny;nz],q_k);
+		N1 = [nx ny nz] - r_com;
+        N1t  = HPS_transformVecByQuatTransposed(N1,q_k);
 
         % X,Y,Z coordinates of 2. node from node table
         nx =  nt(et(k,7),1);
         ny =  nt(et(k,7),2);
         nz =  nt(et(k,7),3);
 
-        N2  = HPS_transformVecByQuatTransposed([nx;ny;nz],q_k);
+
+		N2 = [nx ny nz] - r_com;
+        N2t  = HPS_transformVecByQuatTransposed(N2,q_k);
 
 
         % X,Y,Z coordinates of 3. node from node table
@@ -29,7 +35,8 @@ function nodes = plotSatellite(et,nt, q_k)
         ny =  nt(et(k,8),2);
         nz =  nt(et(k,8),3);
         
-        N3  = HPS_transformVecByQuatTransposed([nx;ny;nz],q_k);
+		N3 = [nx ny nz] - r_com;
+        N3t  = HPS_transformVecByQuatTransposed(N3,q_k);
 
 
         % X,Y,Z coordinates of 4. node from node table
@@ -37,11 +44,10 @@ function nodes = plotSatellite(et,nt, q_k)
         ny =  nt(et(k,9),2);
         nz =  nt(et(k,9),3);
         
-        N4  = HPS_transformVecByQuatTransposed([nx;ny;nz],q_k);
+		N4 = [nx ny nz] - r_com;
+        N4t  = HPS_transformVecByQuatTransposed(N4,q_k);
 
-
-        nodes = [nodes; [N1,N2,N3,N4]'];
-        %fill3(nodes(:,1),nodes(:,2),nodes(:,3),'y');
+		nodes = [nodes; [N1t,N2t,N3t,N4t]'];
     end
 end
 

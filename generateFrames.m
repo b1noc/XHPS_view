@@ -61,6 +61,7 @@ end
 % Display loaded stl file in figure (DEBUG-mode)
 if debug == 1
 	figure
+	hold on
 	if strcmp(def.satelliteModel, 'stl')
 		points=fv.Points*def.stlfactor;
 		ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
@@ -68,11 +69,9 @@ if debug == 1
 		view([0 0])
 		axis equal
 	elseif strcmp(def.satelliteModel, 'enc')
-		et = load(append(def.encpath, 'et.txt.'));
-		nt = load(append(def.encpath, 'nt.txt.'));
-		nodes = plotSat(et,nt);
-		for i = 1:4:length(nodes)
-			nn = nodes(i:i+3,:)*8;
+		nodes = plotSat(def.encpath, [0 0 0 1]);
+		for j = 1:4:length(nodes)
+			nn = (nodes(j:j+3,:));
 			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
 		end
 		view([0 0])
@@ -161,16 +160,9 @@ for i=1:ie
 	elseif strcmp(def.satelliteModel, 'enc')
 		[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
 		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
-		% TODO: move et and nt, nodes out of loop
-		et = load(append(def.encpath, 'et.txt.'));
-		nt = load(append(def.encpath, 'nt.txt.'));
-		q_k = vSatOri(i,:);
-		nodes = plotSat(et, nt, q_k);
-		% TODO: move r_com into loop
-        r_com = [1.5615 0.9720 -0.3310];
-
+		nodes = plotSat(def.encpath, vSatOri(i,:));
 		for j = 1:4:length(nodes)
-			nn = (nodes(j:j+3,:)-r_com)*2000000+satPos;
+			nn = (nodes(j:j+3,:))*2000000+satPos;
 			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
 		end
 	end

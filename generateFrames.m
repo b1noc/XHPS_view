@@ -157,16 +157,20 @@ for i=1:ie
 	ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
 	set(ship, 'FaceColor', def.stlBaseColor, 'EdgeColor', def.stlEdgeColor);
 	%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
+%% ENC sat
 	elseif strcmp(def.satelliteModel, 'enc')
 		[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
 		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
+		% TODO: move et and nt, nodes out of loop
 		et = load(append(def.encpath, 'et.txt.'));
 		nt = load(append(def.encpath, 'nt.txt.'));
-		nodes = plotSat(et, nt);
+		q_k = vSatOri(i,:);
+		nodes = plotSat(et, nt, q_k);
+		% TODO: move r_com into loop
         r_com = [1.5615 0.9720 -0.3310];
 
-		for i = 1:4:length(nodes)
-			nn = (nodes(i:i+3,:)-r_com)*200+satPos;
+		for j = 1:4:length(nodes)
+			nn = (nodes(j:j+3,:)-r_com)*2000000+satPos;
 			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
 		end
 	end

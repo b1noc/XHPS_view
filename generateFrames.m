@@ -20,7 +20,8 @@ def = struct(	'step', 1, ...
 				'stlBaseColor', 'black', ...
 				'stlEdgeColor', 'green', ...
 				'earthfile', 'res/earth.jpg', ...
-				'earthPanels', 180 ...
+				'earthPanels', 180, ...
+				'showEarthInertial', 1 ...
 			);
 
 				%TODO: rotate image file
@@ -174,19 +175,23 @@ for i=1:ie
     %plot velocity vector
     quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2)
      
-    %plot inertial kos
+%% Plot inertial kos
     a=6771000;
-    axis_length = a; %length of coordinate system axis
-    x_axis= [axis_length;0;0];
-    y_axis= [0;axis_length;0];
-    z_axis= [0;0;axis_length];
-    
-	%TODO: inertial coordsys
-    %quiver3(0,0,0,axis_length*1.5,0,0,'linewidth',3,'color', 'blue')
-    %quiver3(0,0,0,0,axis_length*1.5,0,'linewidth',3,'color', 'red')
-    %quiver3(0,0,0,0,0,axis_length*1.5,'linewidth',3,'color', 'green')
-    
-    %% Plot body fixed frame
+	%TODO: replace a by r_earth
+	r_earth=6771000;
+
+	if def.showEarthInertial
+		axis_length = 1.5*r_earth; %length of coordinate system axis
+		x_axis= [axis_length;0;0];
+		y_axis= [0;axis_length;0];
+		z_axis= [0;0;axis_length];
+		
+		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', 'blue')
+		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', 'red')
+		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', 'green')
+	end
+
+%% Plot body fixed frame
     q_k = vSatOri(i,:);
     
     %transform inertial kos to body fixed by quaternion multiplication

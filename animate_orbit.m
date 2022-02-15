@@ -1,8 +1,9 @@
 %% initialize workspace
-addpath animate_orbit
+close all
+addpath toolbox
 % Making sure that XHPS toolbox is loaded (path needs to be adjusted accordingly)
 % This line can be omitted the hps_startupscript has been run manually or the path was added to Matlab by default
-run('<INSERT_PATH_HERE>/XHPS_2021/HPS_simulation/hps_startup.m')
+%run('<INSERT_PATH_HERE>/XHPS_2021/HPS_simulation/hps_startup.m')
 
 % Reading in state matrix from Simulation
 % This line can be ommitted when the states matrix already exists in the workspace 
@@ -39,25 +40,26 @@ settings.step = 50; % step includes only every step'th datapoint from states.mat
 % Setting the video resolution
 settings.resolution = '1080p';
 
+% Loading a 3D model of the satellite
+% - none -> no satellite model displayed
+% - enc	 -> load Element-, Node-, and Reflexion coefficient tables (et.txt, nt.txt, ct.txt) provided by Ansys (path needs to be specified with settings.encFile)
+% - stl  -> EXPERIMENTAL: load a local stl file (path needs to be specified with settings.stlfile) e
+settings.satelliteModel = 'enc';
+
 % Choosing the view perspective
 % - fixed  -> set a fixed view in the ECS coordinate system
-% - follow -> follow the satellite 
 % - fov	   -> field of view: fly above the satellite with a view direction to the center of eart
+% - follow -> follow the satellite 
+% - pilot  -> set view satellite fixed and follow the viewfield of what a pilot would see
 settings.camMode = 'fixed';
 
 % Choosing the default view Angle of the scene. It only takes effect if the camMode = 'fixed'
 settings.viewAngle = [0 20];
 
 % Choosing the cameras proximity to the satellite
-% Can be negative but should be positive to keep the satellite in front of the camera
-settings.zoom = 10e2;
-
-% Loading a 3D model of the satellite
-% - none -> no satellite model displayed
-% - enc	 -> load Element-, Node-, and Reflexion coefficient tables (et.txt, nt.txt, ct.txt) provided by Ansys (path needs to be specified with settings.encFile)
-% - stl  -> load a local stl file (path needs to be specified with settings.stlfile)
-settings.satelliteModel = 'enc';
-
+% Negative values result in zooming away (behind the satellite) positive values result in moving in front of the satellite
+settings.zoom = -1e8;
+settings.satFactor = 5e5;
 
 frameVec = generateFrames(states, settings, debug);
 if debug == 0

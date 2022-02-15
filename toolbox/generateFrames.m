@@ -202,7 +202,6 @@ for i=1:ie
 	
 %% Plot satellite coord system
 
-	if def.showSatCoordinates
 		axis_length = r_earth/2; %length of coordinate system axis
 
 		q_k = vSatOri(i,:);
@@ -217,6 +216,7 @@ for i=1:ie
 		y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
 		z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);
 		
+	if def.showSatCoordinates
 		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
 		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
 		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
@@ -263,8 +263,15 @@ for i=1:ie
 			%TODO: add angle option
             camtarget([0 0 0])
             camlookat(ship)
-			campos(satView)
+			campos(-satView)
 			camup(orbNorm)
+		case 'pilot'
+			front = satPos+x_axis_body';
+			camtarget(front)
+			camlookat(ship)
+			%campos(satPos+(front-satPos)*-3)
+			campos(satPos-x_axis_body'*def.zoom/-5e6)
+			camup(z_axis_body');
 	end
 
 %% Optimize visuals

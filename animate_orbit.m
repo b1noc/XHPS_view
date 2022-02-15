@@ -29,9 +29,8 @@ debug = 0;
 init_parameters
 
 % Setting the starttime and the dt of every simulation step to calculate the time (and the earth's rotation if enabled)
-settings.t_start = datenum(HPS_convertMJD2CalendarDate(core_params.start_date(1))); % format = [matlab datenum]
+settings.t_start = datetime(HPS_convertMJD2CalendarDate(core_params.start_date(1))); % format = [matlab datenum]
 settings.sim_step = core_params.dt_sim ; % [s]
-
 % Defining the stepwidth 
 % Smaller steps takes longer to compile and cause larger filesizes 
 settings.step = 50; % step includes only every step'th datapoint from states.mat to reduce filesize and rendering time

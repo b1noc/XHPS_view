@@ -119,10 +119,11 @@ for i=1:ie
     k=i*def.step - def.step;
 	% Calculating timestamp of current state by adding x*sim_step to the starttime
     tstr = datestr(def.t_start + k * seconds(def.sim_step));
-    t = def.t_start + k * def.sim_step;
+    t = def.t_start + seconds(k * def.sim_step);
 
 	% Calculating earths rotation angle based on time
-    deg_rot = t/3600*15;
+	dt = t-datetime('2000-01-01 12:00:00') ;
+	rot_ang = 360.9856123035484 * days(dt) + 280.46; % [deg]
 
 %% Calculate satellite and camera position vectors
 	% velocity vector
@@ -191,7 +192,7 @@ for i=1:ie
 %% Plot ECEF
 	if def.showECEF
 		axis_length = 1.5*r_earth; %length of coordinate system axis
-		ecef = HPS_computeDCMFromRotationAngle( deg2rad(deg_rot), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
+		ecef = HPS_computeDCMFromRotationAngle( deg2rad(rot_ang), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
 		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', 'blue')
 		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', 'red')
 		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', 'green')
@@ -240,7 +241,7 @@ for i=1:ie
     
 
 %% Rotate Earth
-    rotate(globe, [0 0 1], deg_rot, [0 0 0]);
+    rotate(globe, [0 0 1], rot_ang, [0 0 0]);
    
 	%% TODO: enable rotation of ship. 
 	%rotate(ship, [1 0 0], 90, satPos);

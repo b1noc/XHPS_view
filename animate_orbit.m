@@ -1,4 +1,5 @@
 %% initialize workspace
+addpath animate_orbit
 % Making sure that XHPS toolbox is loaded (path needs to be adjusted accordingly)
 % This line can be omitted the hps_startupscript has been run manually or the path was added to Matlab by default
 run('<INSERT_PATH_HERE>/XHPS_2021/HPS_simulation/hps_startup.m')
@@ -55,7 +56,7 @@ settings.zoom = 10e2;
 % - none -> no satellite model displayed
 % - enc	 -> load Element-, Node-, and Reflexion coefficient tables (et.txt, nt.txt, ct.txt) provided by Ansys (path needs to be specified with settings.encFile)
 % - stl  -> load a local stl file (path needs to be specified with settings.stlfile)
-settings.satelliteModel = 'stl';
+settings.satelliteModel = 'enc';
 
 
 frameVec = generateFrames(states, settings, debug);

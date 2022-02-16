@@ -22,8 +22,10 @@ def = struct(	'step', 1, ...
 				'encpath', strcat(relpath,'/res/'), ...
 				'stlBaseColor', 'black', ...
 				'stlEdgeColor', 'green', ...
+				'showEarth', 1, ...
 				'earthfile', strcat(relpath,'/res/earth.jpg'), ...
-				'earthPanels', 180, ...
+				'earthPanels', 20, ...
+				'showVelocity', 1, ...
 				'showSatCoordinates', 1, ...
 				'showECEF', 1, ...
 				'showECI', 1 ...
@@ -107,7 +109,7 @@ frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
 
 %% printing progress bar 
-if def.progress
+if def.progress && ~debug > 0
 	fprintf('Progress:\n');
 	fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
@@ -177,7 +179,9 @@ for i=1:ie
 
 %% Plot velocity Vec
     %plot velocity vector
-    quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2)
+	if def.showVelocity
+		quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', '#7D3C98')
+	end
      
 %% Plot ECI
 	r_earth=6771000;
@@ -234,14 +238,18 @@ for i=1:ie
     image_file = def.earthfile;
     cdata = imread(image_file);
 
-	% rendering earth
-    [x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
-    globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
-    set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
-    
+	
+%% rendering earth
+		[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
+		globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
 
-%% Rotate Earth
-    rotate(globe, [0 0 1], rot_ang, [0 0 0]);
+	if def.showEarth == 1
+		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
+		
+
+	%% Rotate Earth
+		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
+	end
    
 %% Set Viewpoint 
     campos('manual')
@@ -264,14 +272,15 @@ for i=1:ie
 			camlookat(ship)
 			campos(satPos-x_axis_body'*def.zoom/-5e6)
 			camup(z_axis_body');
-	end
+    end
+       
 
 %% Equalize axes and Framesize
     xlim(xl);
     ylim(yl);
 	annotation('textbox', [.01,.96, 0.1, 0.03], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
 
-	if def.progress
+	if def.progress && ~debug > 0
 		progress = floor(i*100/ie);
 		prog = floor(progress * .6);
 		inv = ceil(100*.6 - prog);
@@ -281,13 +290,14 @@ for i=1:ie
 %% Generate frame from current plot
     if debug == 2
 		drawnow;
-    else if debug > 0
+    elseif debug > 0
 		drawnow;
 		break;
 	else
 		frameVec(i) = getframe(fig, [0 0 width height]);
-	end
+    end
     
     
 end % forloop
+fprintf('\n')
 end % function

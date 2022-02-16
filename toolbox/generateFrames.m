@@ -10,7 +10,9 @@ def = struct(	'step', 1, ...
 				'sim_step', 10, ...
 				't_start', 730486, ...
 				'borderScale', 1.2, ...
-				'vecLength', 500, ... 
+				'satVecLength', 1, ... 
+				'velVecLength', 500, ... 
+				'earthVecLength', 1.5, ... 
 				'camMode', 'fixed', ...
 				'zoom', 50, ...
 				'earthTransparency', 1, ...
@@ -131,7 +133,7 @@ for i=1:ie
 
 %% Calculate satellite and camera position vectors
 	% velocity vector
-    velocity = [vSatVel(i,1)*def.vecLength,vSatVel(i,2)*def.vecLength,vSatVel(i,3)*def.vecLength];
+    velocity = [vSatVel(i,1)*def.velVecLength,vSatVel(i,2)*def.velVecLength,vSatVel(i,3)*def.velVecLength];
 	vn = velocity./norm(velocity);
 	vfront = vn*def.zoom;
     % position of satelite
@@ -187,24 +189,24 @@ for i=1:ie
 	r_earth=6771000;
 
 	if def.showECI
-		axis_length = 1.5*r_earth; %length of coordinate system axis
-		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', 'blue')
-		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', 'red')
-		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', 'green')
+		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
+		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', '#7FB3D5')
+		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', '#F1948A')
+		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', '#82E0AA')
 	end
 
 %% Plot ECEF
 	if def.showECEF
-		axis_length = 1.5*r_earth; %length of coordinate system axis
+		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
 		ecef = HPS_computeDCMFromRotationAngle( deg2rad(rot_ang), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
-		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', 'blue')
-		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', 'red')
-		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', 'green')
+		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', '#0072BD')
+		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', '#E74C3C')
+		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', '#77AC30')
 	end
 	
 %% Plot satellite coord system
 
-		axis_length = r_earth/2; %length of coordinate system axis
+		axis_length = def.satVecLength*r_earth/2; %length of coordinate system axis
 
 		q_k = vSatOri(i,:);
 		
@@ -217,11 +219,11 @@ for i=1:ie
 		x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_k);
 		y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
 		z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);
-		
-	if def.showSatCoordinates
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', 'blue')
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', 'red')
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', 'green')
+
+		if def.showSatCoordinates
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', '#0072BD')
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', '#E74C3C')
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', '#77AC30')
 	end
     
 %% Plot earth

@@ -10,7 +10,7 @@ def = struct(	'step', 1, ...
 				'sim_step', 10, ...
 				't_start', 730486, ...
 				'borderScale', 1.2, ...
-				'vecLength', 500, ... %TODO: factor of zoom
+				'vecLength', 500, ... 
 				'camMode', 'fixed', ...
 				'zoom', 50, ...
 				'earthTransparency', 1, ...
@@ -29,9 +29,6 @@ def = struct(	'step', 1, ...
 				'showECI', 1 ...
 			);
 
-				%TODO: rotate image file
-%TODO: image_file loaded from 'http://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Land_ocean_ice_2048.jpg/1024px-Land_ocean_ice_2048.jpg';
-
 % Overwriting default settings with specified user settings
 diff = intersect(fieldnames(settings),fieldnames(def));
 for n = 1:length(diff)
@@ -48,7 +45,10 @@ vSatPos = state(:,11:13);
 vSatOri = state(:,4:7);
 vSatVel = state(:,8:10);
 
-fv = stlread(def.stlfile);
+%% Load 3d model file
+if strcmp(def.satelliteModel,'stl')
+	fv = stlread(def.stlfile);
+end
 
 %% Defining vido quality based on user settings
 switch def.resolution
@@ -82,7 +82,7 @@ if debug == 1
 	end
 end
 
-% Display video figure in DEBUG-mode
+% Display frame in DEBUG-mode
 if debug > 0
     fig = figure;
 else
@@ -180,8 +180,6 @@ for i=1:ie
     quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2)
      
 %% Plot ECI
-    a=6771000;
-	%TODO: replace a by r_earth
 	r_earth=6771000;
 
 	if def.showECI
@@ -237,7 +235,7 @@ for i=1:ie
     cdata = imread(image_file);
 
 	% rendering earth
-    [x, y, z] = ellipsoid(0, 0, 0, a, a, a, def.earthPanels);
+    [x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
     globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
     set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
     
@@ -245,22 +243,17 @@ for i=1:ie
 %% Rotate Earth
     rotate(globe, [0 0 1], rot_ang, [0 0 0]);
    
-	%% TODO: enable rotation of ship. 
-	%rotate(ship, [1 0 0], 90, satPos);
-
 %% Set Viewpoint 
     campos('manual')
     view(def.viewAngle);
     switch def.camMode 
 		case 'fixed'
 		case 'follow'
-			%TODO: add angle option
             camtarget(satPos)
 			camlookat(ship)
 			campos(satPos+vfront)
 			camup(satPos);
 		case 'fov'
-			%TODO: add angle option
             camtarget([0 0 0])
             camlookat(ship)
 			campos(-satView)
@@ -269,18 +262,10 @@ for i=1:ie
 			front = satPos+x_axis_body';
 			camtarget(front)
 			camlookat(ship)
-			%campos(satPos+(front-satPos)*-3)
 			campos(satPos-x_axis_body'*def.zoom/-5e6)
 			camup(z_axis_body');
 	end
 
-%% Optimize visuals
-
-	%TODO: Add a camera light, and tone down the specular highlighting
-	%camlight('headlight');
-	%material('dull');
-    %shading faceted; 
-    
 %% Equalize axes and Framesize
     xlim(xl);
     ylim(yl);

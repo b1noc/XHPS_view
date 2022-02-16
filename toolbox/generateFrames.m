@@ -106,10 +106,10 @@ ie = ceil(endframe/def.step);
 frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
 
-%% printing progress bar (multithread compatible)
+%% printing progress bar 
 if def.progress
 	fprintf('Progress:\n');
-	fprintf(['\n' repmat('.',1,ie) '\n\n']);
+	fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
 
 %% Main loop
@@ -285,7 +285,13 @@ for i=1:ie
     xlim(xl);
     ylim(yl);
 	annotation('textbox', [.01,.96, 0.1, 0.03], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
-    
+
+	if def.progress
+		progress = floor(i*100/ie);
+		prog = floor(progress * .6);
+		inv = ceil(100*.6 - prog);
+		fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inv), progress)
+	end
 
 %% Generate frame from current plot
     if debug == 2
@@ -297,9 +303,6 @@ for i=1:ie
 		frameVec(i) = getframe(fig, [0 0 width height]);
 	end
     
-	if def.progress
-		fprintf('\b#\n');
-	end
     
 end % forloop
 end % function

@@ -94,8 +94,11 @@ else
 end
 
 %% Prepare looprun
+r_earth=6771000;
 plot3(vSatPos(:,1),vSatPos(:,2),vSatPos(:,3))
 set(fig, 'Position',  [100, 100, width, height]);
+[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
+globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
 
 % scaling axes
 xl = xlim*def.borderScale;
@@ -186,7 +189,7 @@ for i=1:ie
 	end
      
 %% Plot ECI
-	r_earth=6771000;
+
 
 	if def.showECI
 		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
@@ -215,7 +218,6 @@ for i=1:ie
 		z_axis= [0;0;axis_length];
 
 		%transform inertial kos to body fixed by quaternion multiplication
-		%(xrvar qnefgryyhat qrf Beovgny Xbs in eci daher vecbyquattransposed)
 		x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_k);
 		y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
 		z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);

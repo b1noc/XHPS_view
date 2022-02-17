@@ -113,7 +113,7 @@ frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 %% printing progress bar 
 if def.progress && ~debug > 0
 	fprintf('Progress:\n');
-	fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
+	progLength = fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
 
 %% Main loop
@@ -286,7 +286,8 @@ for i=1:ie
 		progress = floor(i*100/ie);
 		prog = floor(progress * .6);
 		inv = ceil(100*.6 - prog);
-		fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inv), progress)
+		fprintf(repmat('\b',1,progLength));
+		progLength = fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inv), progress);
 	end
 
 %% Generate frame from current plot

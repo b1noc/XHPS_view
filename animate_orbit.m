@@ -24,6 +24,7 @@ duration = 10; % [s]
 % - 0 = off -> generating full video (might take some time)
 % - 1 = oneShot -> generates and displays the first frame (to check settings) and displays the loaded satellite Model if enabled
 debug = 0;
+gif = 0;
 
 %% settings
 % Run init_parameters to read in simulation parameters 
@@ -66,6 +67,9 @@ if debug == 0
 	% Save frameVec and video to file system
 	save('frameVec','frameVec', '-v7.3')
 	saveVid(videoName, duration, frameVec)
+end
+if gif 
+	saveGif(videoName, frameVec)
 end
 
 % To regenerate video with a different duration [s], simply run with the frameVec matrix in workspace

@@ -30,7 +30,9 @@ def = struct(	'step', 1, ...
 				'showVelocity', 1, ...
 				'showSatCoordinates', 1, ...
 				'showECEF', 1, ...
-				'showECI', 1 ...
+				'showECI', 1, ...
+				'cRoll', 0, ...
+				'cOrb', [0,0] ...
 			);
 
 % Overwriting default settings with specified user settings
@@ -214,14 +216,14 @@ for i=1:ie
 
 		q_k = vSatOri(i,:);
 		
-		x_axis= [axis_length;0;0];
-		y_axis= [0;axis_length;0];
-		z_axis= [0;0;axis_length];
-
 		%transform inertial kos to body fixed by quaternion multiplication
-		x_axis_body = HPS_transformVecByQuatTransposed(x_axis,q_k);
-		y_axis_body = HPS_transformVecByQuatTransposed(y_axis,q_k);
-		z_axis_body = HPS_transformVecByQuatTransposed(z_axis,q_k);
+		x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
+		y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
+		z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
+
+		x_axis_body = x_axis_bodyUnit;
+		y_axis_body = y_axis_bodyUnit;
+		z_axis_body = z_axis_bodyUnit;
 
 		if def.showSatCoordinates
 		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', '#0072BD')
@@ -230,8 +232,6 @@ for i=1:ie
 	end
     
 %% Plot earth
-    box off
-	axis vis3d off
     
     grs80 = referenceEllipsoid('grs80','m');
     
@@ -256,9 +256,13 @@ for i=1:ie
 		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
 	end
    
+	%% remove axis
+    box off
+	axis vis3d off
+
 %% Set Viewpoint 
     campos('manual')
-    view(def.viewAngle);
+    %view(def.viewAngle);
     switch def.camMode 
 		case 'fixed'
 		case 'follow'
@@ -270,6 +274,7 @@ for i=1:ie
             camtarget([0 0 0])
             camlookat(ship)
 			campos(-satView)
+			camzoom(1)
 			camup(orbNorm)
 		case 'pilot'
 			front = satPos+x_axis_body';
@@ -277,6 +282,30 @@ for i=1:ie
 			camlookat(ship)
 			campos(satPos-x_axis_body'*def.zoom/-5e6)
 			camup(z_axis_body');
+		case 'earthCentered'
+			camtarget([0 0 0])
+			campos([0 -r_earth*1.5e1 0])
+			camorbit(def.cOrb(1),def.cOrb(2))
+		case 'satCentered'
+			camtarget(satPos)
+			campos(satPos+sn*1.5e8)
+			camup(velocity)
+			camroll(def.cRoll)
+			camorbit(def.cOrb(1),def.cOrb(2),'camera')
+		case 'satFixed'
+			camtarget(satPos)
+			campos((satPos+z_axis_bodyUnit'*1.5e8))
+			camup(x_axis_bodyUnit')
+			camroll(def.cRoll)
+			camorbit(def.cOrb(1),def.cOrb(2),'camera')
+
+			%{ 
+			# Other modes 
+				- Earthfixed (move with earth rotation)
+			## defaults
+				- orbit planar
+				- 
+			%}
     end
        
 

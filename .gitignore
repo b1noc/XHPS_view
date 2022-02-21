@@ -1,4 +1,7 @@
+# Ignore video outputfiles
 *.avi
-*.mat
-*.vim
 *.gif
+
+# Ignore XHPS files
+*.mat
+init_parameters.m

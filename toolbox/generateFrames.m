@@ -14,7 +14,7 @@ def = struct(	'step', 1, ...
 				'velVecLength', 500, ... 
 				'earthVecLength', 1.5, ... 
 				'camMode', 'fixed', ...
-				'zoom', 50, ...
+				'zoom', 1, ...
 				'earthTransparency', 1, ...
 				'satelliteModel', 'none', ...
 				'viewAngle', [0 90], ...
@@ -284,17 +284,18 @@ for i=1:ie
 			camup(z_axis_body');
 		case 'earthCentered'
 			camtarget([0 0 0])
-			campos([0 -r_earth*1.5e1 0])
+			%campos([0 -r_earth*def.zoom*10 0])
+			campos([0 -1*(1/def.zoom)*1e8 0])
 			camorbit(def.cOrb(1),def.cOrb(2))
 		case 'satCentered'
 			camtarget(satPos)
-			campos(satPos+sn*1.5e8)
+			campos(satPos+sn*(1/def.zoom)*1e8)
 			camup(velocity)
 			camroll(def.cRoll)
 			camorbit(def.cOrb(1),def.cOrb(2),'camera')
 		case 'satFixed'
 			camtarget(satPos)
-			campos((satPos+z_axis_bodyUnit'*1.5e8))
+			campos((satPos-z_axis_bodyUnit'*(1/def.zoom)*1e8))
 			camup(x_axis_bodyUnit')
 			camroll(def.cRoll)
 			camorbit(def.cOrb(1),def.cOrb(2),'camera')

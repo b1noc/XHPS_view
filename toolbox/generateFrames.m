@@ -95,10 +95,11 @@ end
 
 %% Prepare looprun
 r_earth=6771000;
-plot3(vSatPos(:,1),vSatPos(:,2),vSatPos(:,3))
 set(fig, 'Position',  [100, 100, width, height]);
 [x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
 globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+hold on
+plot3(vSatPos(:,1),vSatPos(:,2),vSatPos(:,3))
 
 % scaling axes
 xl = xlim*def.borderScale;

@@ -66,10 +66,11 @@ frameVec = generateFrames(states, settings, debug);
 if debug == 0
 	% Save frameVec and video to file system
 	save('frameVec','frameVec', '-v7.3')
-	saveVid(videoName, duration, frameVec)
-end
-if gif 
-	saveGif(videoName, frameVec)
+	if ~gif 
+		saveVid(videoName, duration, frameVec)
+	else
+		saveGif(videoName, frameVec)
+	end
 end
 
 % To regenerate video with a different duration [s], simply run with the frameVec matrix in workspace

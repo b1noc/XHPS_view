@@ -84,7 +84,7 @@ if debug == 1
 			nn = (nodes(j:j+3,:))*def.satFactor;
 			fill3(nn(:,1),nn(:,2),nn(:,3),'y');
 		end
-		view([0 0])
+		view(3)
 		axis equal
 	end
 end
@@ -287,7 +287,7 @@ for i=1:ie
 			camtarget([0 0 0])
 			%campos([0 -r_earth*def.zoom*10 0])
 			campos([0 -1*(1/def.zoom)*1e8 0])
-			camorbit(def.cOrb(1),def.cOrb(2))
+			camorbit(90+def.cOrb(1),def.cOrb(2))
 		case 'satCentered'
 			camtarget(satPos)
 			campos(satPos+sn*(1/def.zoom)*1e8)

@@ -47,6 +47,7 @@ endframe=length(states);
 state = states(1:def.step:endframe,:);
 
 % optimizing for multithreadded processing
+vSatPosFull = states(:,11:13);
 vSatPos = state(:,11:13);
 vSatOri = state(:,4:7);
 vSatVel = state(:,8:10);
@@ -154,7 +155,7 @@ for i=1:ie
 	clear orbPlaneA orbPlaneB orbPlaneC
     
     % Plot orbit as blue line
-    plot3(vSatPos(:,1),vSatPos(:,2),vSatPos(:,3))
+    plot3(vSatPosFull(:,1),vSatPosFull(:,2),vSatPosFull(:,3))
     hold on
 
 %% Plot satellite 

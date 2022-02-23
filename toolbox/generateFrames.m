@@ -222,9 +222,9 @@ for i=1:ie
 		y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
 		z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
 
-		x_axis_body = x_axis_bodyUnit;
-		y_axis_body = y_axis_bodyUnit;
-		z_axis_body = z_axis_bodyUnit;
+		x_axis_body = x_axis_bodyUnit*axis_length;
+		y_axis_body = y_axis_bodyUnit*axis_length;
+		z_axis_body = z_axis_bodyUnit*axis_length;
 
 		if def.showSatCoordinates
 		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', '#0072BD')

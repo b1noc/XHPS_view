@@ -97,7 +97,7 @@ end
 
 %% Prepare looprun
 r_earth=6771000;
-set(fig, 'Position',  [100, 100, width, height]);
+fig.Position(3:4)=[width,height];
 [x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
 globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
 hold on

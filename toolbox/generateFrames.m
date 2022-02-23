@@ -313,7 +313,13 @@ for i=1:ie
 %% Equalize axes and Framesize
     xlim(xl);
     ylim(yl);
-	annotation('textbox', [.01,.96, 0.1, 0.03], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
+
+	wh = get(fig, 'Position');
+	relWidth = 1/wh(3)*180;
+	relHeight = 1/wh(4)*25;
+	paddingX = 1/wh(3)*10;
+	paddingY = 1/wh(4)*10;
+	annotation('textbox', [paddingX, paddingY, relWidth, relHeight], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
 
 	if def.progress && ~debug > 0
 		progress = floor(i*100/ie);

@@ -107,8 +107,10 @@ plot3(vSatPos(:,1),vSatPos(:,2),vSatPos(:,3))
 % scaling axes
 xl = xlim*def.borderScale;
 yl = ylim*def.borderScale;
+zl = zlim*def.borderScale;
 xlim(xl)
 ylim(yl)
+zlim(zl)
 
 % define last frame 
 ie = ceil(endframe/def.step);
@@ -314,6 +316,7 @@ for i=1:ie
 %% Equalize axes and Framesize
     xlim(xl);
     ylim(yl);
+    zlim(zl);
 
 	wh = get(fig, 'Position');
 	relWidth = 1/wh(3)*180;

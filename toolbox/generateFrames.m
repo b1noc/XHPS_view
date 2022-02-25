@@ -175,13 +175,17 @@ for i=1:ie
     
 %% STL sat
 	elseif strcmp(def.satelliteModel, 'stl')
-	for f = 1:length(fv.Points)
-		points(f,:) = HPS_transformVecByQuatTransposed(fv.Points(f,:), vSatOri(i,:))';
-	end
-    points=points*def.satFactor+satPos;
-	ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-	set(ship, 'FaceColor', def.baseColor, 'EdgeColor', def.edgeColor);
-	%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
+		points = fv.Points*def.satFactor+satPos;
+		ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+		set(ship, 'FaceColor', def.baseColor, 'EdgeColor', def.edgeColor);
+
+		rotVec = rad2deg(HPS_quat2euler(vSatOri(i,:)));
+		rotate(ship, [1 0 0], rotVec(1), satPos);
+		rotate(ship, [0 1 0], rotVec(2), satPos);
+		rotate(ship, [0 0 1], rotVec(3), satPos);
+
+		%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
+
 %% ENC sat
 	elseif strcmp(def.satelliteModel, 'enc')
 		[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);

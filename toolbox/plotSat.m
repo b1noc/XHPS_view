@@ -1,7 +1,7 @@
 function nodes = plotSatellite(path, q_k)
 
-	et = load(append(path, 'et.txt.'));
-	nt = load(append(path, 'nt.txt.'));
+	et = load([path, 'et.txt.']);
+	nt = load([path, 'nt.txt.']);
 
 	n = max(et(:,1));
 	nodes = [];

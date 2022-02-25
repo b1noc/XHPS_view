@@ -1,5 +1,5 @@
 function [] = saveGif(name, frameVec)
-	filename = append(name, '.gif')
+	filename = [name, '.gif']
 	for i = 1:length(frameVec)
 		im = frame2im(frameVec(i)); 
 		[imind,cm] = rgb2ind(im,256); 

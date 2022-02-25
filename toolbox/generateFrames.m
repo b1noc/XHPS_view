@@ -189,7 +189,7 @@ for i=1:ie
 %% Plot velocity Vec
     %plot velocity vector
 	if def.showVelocity
-		quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', '#7D3C98')
+		quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', [0.4902 0.2353 0.5961])
 	end
      
 %% Plot ECI
@@ -197,18 +197,18 @@ for i=1:ie
 
 	if def.showECI
 		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
-		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', '#7FB3D5')
-		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', '#F1948A')
-		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', '#82E0AA')
+		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', [0.4980 0.7020 0.8353])
+		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', [0.9451 0.5804 0.5412])
+		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', [0.5098 0.8784 0.6667])
 	end
 
 %% Plot ECEF
 	if def.showECEF
 		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
 		ecef = HPS_computeDCMFromRotationAngle( deg2rad(rot_ang), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
-		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', '#0072BD')
-		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', '#E74C3C')
-		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', '#77AC30')
+		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', [0 0.4471 0.7412])
+		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', [0.9059 0.2980 0.2353])
+		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', [0.4667 0.6745 0.1882])
 	end
 	
 %% Plot satellite coord system
@@ -227,9 +227,9 @@ for i=1:ie
 		z_axis_body = z_axis_bodyUnit*axis_length;
 
 		if def.showSatCoordinates
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', '#0072BD')
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', '#E74C3C')
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', '#77AC30')
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', [0 0.4471 0.7412])
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', [0.9059 0.2980 0.2353])
+		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', [0.4667 0.6745 0.1882])
 	end
     
 %% Plot earth

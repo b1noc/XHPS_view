@@ -290,6 +290,7 @@ for i=1:ie
 			%campos([0 -r_earth*def.zoom*10 0])
 			campos([0 -1*(1/def.zoom)*1e8 0])
 			camorbit(90+def.cOrb(1),def.cOrb(2))
+            camroll(def.cRoll)
 		case 'satCentered'
 			camtarget(satPos)
 			campos(satPos+sn*(1/def.zoom)*1e8)

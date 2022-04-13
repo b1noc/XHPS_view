@@ -65,6 +65,9 @@ switch def.resolution
 	case '1080p'
 		width = 1920;
 		height = 1080;
+    case '4k'
+        width = 3840;
+        height = 2160;
 end
 
 %% DEBUG-mode

@@ -1,5 +1,6 @@
 %% initialize workspace
 close all
+clear settings
 addpath toolbox
 % Making sure that XHPS toolbox is loaded (path needs to be adjusted accordingly)
 % This line can be omitted the hps_startupscript has been run manually or the path was added to Matlab by default
@@ -52,14 +53,15 @@ settings.satelliteModel = 'enc';
 % - fov	   -> field of view: fly above the satellite with a view direction to the center of eart
 % - follow -> follow the satellite 
 % - pilot  -> set view satellite fixed and follow the viewfield of what a pilot would see
-settings.camMode = 'fixed';
+settings.camMode = 'earthCentered';
 
 % Choosing the default view Angle of the scene. It only takes effect if the camMode = 'fixed'
-settings.viewAngle = [0 20];
+settings.viewAngle = [0 0];
+settings.rollAngle = 0;
 
 % Choosing the cameras proximity to the satellite
 % Negative values result in zooming away (behind the satellite) positive values result in moving in front of the satellite
-settings.zoom = -1e8;
+settings.zoom = 1;
 settings.satFactor = 5e5;
 
 % Save frameVec and video to file system

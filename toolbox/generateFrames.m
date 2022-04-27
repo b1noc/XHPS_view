@@ -1,11 +1,12 @@
-function frameVec = generateFrames(states, settings, debug)
+function frameVec = generateFrames(states, settings)
 
 % getting relative path of toolbox files
 [relpath,~,~] = fileparts(mfilename('fullpath'));
 
 %% Setting settings
 % Defining default values for unspecified user settings
-def = struct(	'step', 1, ...
+def = struct(	'debug', 0, ...	
+				'step', 1, ...
 				'resolution', '1080p', ...
 				'sim_step', 10, ...
 				't_start', 730486, ...
@@ -74,7 +75,7 @@ end
 
 %% DEBUG-mode
 % Display loaded stl file in figure (DEBUG-mode)
-if debug == 1
+if def.debug == 1
 	figure
 	hold on
 	if strcmp(def.satelliteModel, 'stl')
@@ -94,11 +95,11 @@ if debug == 1
 	end
 end
 
-% Display frame in DEBUG-mode
-if debug > 0
-    fig = figure;
-else
+% Hide figure with debug flag 3
+if def.debug == 3
     fig = figure('visible','off');
+else
+    fig = figure;
 end
 
 %% Prepare looprun
@@ -128,7 +129,7 @@ gt=nan(gtlength,3);
 
 
 %% printing progress bar 
-if def.progress && ~debug > 0
+if def.progress 
 	fprintf('Progress:\n');
 	progLength = fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
@@ -324,7 +325,7 @@ for i=1:ie
 	paddingY = 1/wh(4)*10;
 	annotation('textbox', [paddingX, paddingY, relWidth, relHeight], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
 
-	if def.progress && ~debug > 0
+	if def.progress 
 		progress = floor(i*100/ie);
 		prog = floor(progress * .6);
 		inv = ceil(100*.6 - prog);
@@ -333,14 +334,15 @@ for i=1:ie
 	end
 
 %% Generate frame from current plot
-    if debug == 2
-		drawnow;
-    elseif debug > 0
+    if def.debug == 1
 		drawnow;
 		break;
+	elseif def.debug == 2
+		drawnow;
 	else
 		frameVec(i) = getframe(fig, [0 0 width height]);
     end
+
     
     
 end % forloop

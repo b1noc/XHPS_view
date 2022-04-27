@@ -23,7 +23,7 @@ duration = 10; % [s]
 % Turning on the debug mode:
 % - 0 = off -> generating full video (might take some time)
 % - 1 = oneShot -> generates and displays the first frame (to check settings) and displays the loaded satellite Model if enabled
-debug = 0;
+settings.debug = 0;
 gif = 0;
 
 %% settings
@@ -62,9 +62,9 @@ settings.viewAngle = [0 20];
 settings.zoom = -1e8;
 settings.satFactor = 5e5;
 
-frameVec = generateFrames(states, settings, debug);
-if debug == 0
-	% Save frameVec and video to file system
+% Save frameVec and video to file system
+frameVec = generateFrames(states, settings);
+if frameVec
 	save('frameVec','frameVec', '-v7.3')
 	saveVid(videoName, duration, frameVec)
 	saveGif(videoName, frameVec)

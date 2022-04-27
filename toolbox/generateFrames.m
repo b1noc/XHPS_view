@@ -270,25 +270,6 @@ for i=1:ie
 
 %% Set Viewpoint 
     switch def.camMode 
-		case 'fixed'
-			view(def.viewAngle);
-		case 'follow'
-            camtarget(satPos)
-			camlookat(ship)
-			campos(satPos+vfront)
-			camup(satPos);
-		case 'fov'
-            camtarget([0 0 0])
-            camlookat(ship)
-			campos(-satView)
-			camzoom(1)
-			camup(orbNorm)
-		case 'pilot'
-			front = satPos+x_axis_body';
-			camtarget(front)
-			camlookat(ship)
-			campos(satPos-x_axis_body'*def.zoom/-5e6)
-			camup(z_axis_body');
 		case 'earthCentered'
 			%turning off axis
 			set(gca, 'Visible', 'off')

@@ -264,20 +264,14 @@ for i=1:ie
 	if def.showEarth == 1
 		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
 		
-
 	%% Rotate Earth
 		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
 	end
-   
-	%% remove axis
-    box off
-	axis vis3d off
 
 %% Set Viewpoint 
-    campos('manual')
-    %view(def.viewAngle);
     switch def.camMode 
 		case 'fixed'
+			view(def.viewAngle);
 		case 'follow'
             camtarget(satPos)
 			camlookat(ship)
@@ -296,31 +290,29 @@ for i=1:ie
 			campos(satPos-x_axis_body'*def.zoom/-5e6)
 			camup(z_axis_body');
 		case 'earthCentered'
+			%turning off axis
+			set(gca, 'Visible', 'off')
 			camtarget([0 0 0])
 			%campos([0 -r_earth*def.zoom*10 0])
 			campos([0 -1*(1/def.zoom)*1e8 0])
 			camorbit(90+def.cOrb(1),def.cOrb(2))
             camroll(def.cRoll)
 		case 'satCentered'
+			%turning off axis
+			axis image vis3d off
 			camtarget(satPos)
 			campos(satPos+sn*(1/def.zoom)*1e8)
 			camup(velocity)
 			camroll(def.cRoll)
 			camorbit(def.cOrb(1),def.cOrb(2),'camera')
 		case 'satFixed'
+			%turning off axis
+			axis image vis3d off
 			camtarget(satPos)
 			campos((satPos-z_axis_bodyUnit'*(1/def.zoom)*1e8))
 			camup(x_axis_bodyUnit')
 			camroll(def.cRoll)
 			camorbit(def.cOrb(1),def.cOrb(2),'camera')
-
-			%{ 
-			# Other modes 
-				- Earthfixed (move with earth rotation)
-			## defaults
-				- orbit planar
-				- 
-			%}
     end
        
 

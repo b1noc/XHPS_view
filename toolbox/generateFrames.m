@@ -25,6 +25,8 @@ def = struct(	'step', 1, ...
 				'baseColor', 'yellow', ...
 				'edgeColor', 'black', ...
 				'showEarth', 1, ...
+				'showGroundTrack', 1, ...
+				'groundTrackLenght', 1, ...
 				'earthfile', strcat(relpath,'/res/earth.jpg'), ...
 				'earthPanels', 20, ...
 				'showVelocity', 1, ...
@@ -121,6 +123,9 @@ ie = ceil(endframe/def.step);
 % initializing vector to save frames
 frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
+gtlength = ceil(ie * def.groundTrackLenght)
+gt=nan(gtlength,3);
+
 
 %% printing progress bar 
 if def.progress && ~debug > 0
@@ -162,6 +167,16 @@ for i=1:ie
     % Plot orbit as blue line
     plot3(vSatPosFull(:,1),vSatPosFull(:,2),vSatPosFull(:,3))
     hold on
+
+	if def.showGroundTrack
+		for f = 1:gtlength-1
+			ff=gtlength+1-f;
+			gt(ff,:) = gt(ff-1,:);
+		end
+
+		gt(1,:) = sn*r_earth+1e4*sn;
+		plot3(gt(:,1),gt(:,2),gt(:,3), 'color', 'green', 'linewidth', 2)
+	end
 
 %% Plot satellite 
 

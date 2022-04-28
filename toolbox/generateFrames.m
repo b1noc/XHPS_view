@@ -1,4 +1,4 @@
-function frameVec = generateFrames(states, settings)
+function frameVec = generateFrames(sat, settings)
 
 % getting relative path of toolbox files
 [relpath,~,~] = fileparts(mfilename('fullpath'));
@@ -13,29 +13,34 @@ def = struct(	'debug', 0, ...
 				'sim_step', 10, ...
 				't_start', 730486, ...
 				'camMode', 'earthCentered', ...
-				'satelliteModel', 'none', ...
-				'satFactor', 1, ...
-				'zoom', 1, ...
 				'borderScale', 1, ...
 				'viewAngle', [0 0], ...
 				'rollAngle', 0, ...
-				'baseColor', 'yellow', ...
-				'edgeColor', 'black', ...
+				'zoom', 1, ...
 				'showEarth', 1, ...
 				'earthTransparency', 1, ...
-				'earthPanels', 20, ...
+				'earthPanels', 180, ...
+				'showECEF', 1, ...
+				'showECI', 1, ...
+				'earthVecLength', 1.5, ... 
+				'earthfile', strcat(relpath,'/res/earth.jpg'), ...
+				'mainSat', 1 ...
+			);
+
+defsat = struct('states', 'none', ...
+				'satelliteModel', 'none', ...
+				'satFactor', 1, ...
+				'baseColor', 'yellow', ...
+				'edgeColor', 'black', ...
 				'showGroundTrack', 1, ...
 				'groundTrackLenght', 1, ...
 				'showVelocity', 1, ...
 				'showSatCoordinates', 1, ...
-				'showECEF', 1, ...
-				'showECI', 1, ...
 				'satVecLength', 1, ... 
 				'velVecLength', 500, ... 
-				'earthVecLength', 1.5, ... 
+				'name', '', ...
 				'encpath', strcat(relpath,'/res/'), ...
-				'stlfile', strcat(relpath,'/res/jeb.stl'), ...
-				'earthfile', strcat(relpath,'/res/earth.jpg') ...
+				'stlfile', strcat(relpath,'/res/jeb.stl') ...
 			);
 
 % Overwriting default settings with specified user settings
@@ -44,20 +49,19 @@ for n = 1:length(diff)
 	def.(diff{n}) = settings.(diff{n});
 end
 
-%% Reading in states
-% only reading every stepth value of states
-endframe=length(states);
-state = states(1:def.step:endframe,:);
-
-% optimizing for multithreadded processing
-vSatPosFull = states(:,11:13);
-vSatPos = state(:,11:13);
-vSatOri = state(:,4:7);
-vSatVel = state(:,8:10);
-
-%% Load 3d model file
-if strcmp(def.satelliteModel,'stl')
-	fv = stlread(def.stlfile);
+% Overwriting default settings of each satellite with user specified settings
+%TODO: simplify
+diff = setxor(fieldnames(sat(1)),fieldnames(defsat));
+for n = 1:length(diff)
+	sat(1).(diff{n}) = defsat.(diff{n});
+end
+keys = fieldnames(defsat);
+for s = 2:length(sat)
+	for n = 2:length(keys)
+		if isempty(sat(s).(keys{n}))
+			sat(s).(keys{n}) = defsat.(keys{n});	
+		end
+	end
 end
 
 %% Defining vido quality based on user settings
@@ -73,27 +77,65 @@ switch def.resolution
         height = 2160;
 end
 
-%% DEBUG-mode
-% Display loaded stl file in figure (DEBUG-mode)
-if def.debug == 1
-	figure
-	hold on
-	if strcmp(def.satelliteModel, 'stl')
-		points=fv.Points*def.satFactor;
-		ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-		set(ship, 'FaceColor', def.baseColor, 'EdgeColor', def.edgeColor);
-		view([0 0])
-		axis equal
-	elseif strcmp(def.satelliteModel, 'enc')
-		nodes = plotSat(def.encpath, [0 0 0 1]);
-		for j = 1:4:length(nodes)
-			nn = (nodes(j:j+3,:))*def.satFactor;
-			fill3(nn(:,1),nn(:,2),nn(:,3), def.baseColor, 'EdgeColor', def.edgeColor, 'LineWidth', 2);
-		end
-		view(3)
-		axis equal
+
+
+%% SATELLITE PREP
+% finding the shortest states matrix
+lshort = length(sat(1).states);
+for s = 2:length(sat)
+	lsat = length(sat(s).states);
+	if lsat < lshort
+		lshort = lsat;
 	end
 end
+
+%% Reading in states
+% define last frame 
+endframe=lshort;
+ie = ceil(endframe/def.step);
+
+for s = 1:length(sat)
+	sat(s).states_full = sat(s).states;
+	sat(s).states = sat(s).states(1:def.step:endframe,:);
+
+%% Load 3d model file
+	if strcmp(sat(s).satelliteModel,'stl')
+		fv = stlread(sat(s).stlfile);
+	end
+
+	sat(s).gtlength = ceil(ie * sat(s).groundTrackLenght);
+	sat(s).gt=nan(sat(s).gtlength,3);
+
+%% DEBUG-mode
+% Display loaded stl file in figure (DEBUG-mode)
+	if def.debug == 1
+		figure
+		hold on
+
+		if isempty(sat(s).name)
+			title(['Satellite ' num2str(s,'%1d')])
+		else
+			title(sat(s).name)
+		end
+		
+		if strcmp(sat(s).satelliteModel, 'stl')
+			points=fv.Points*sat(s).satFactor;
+			ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+			set(ship, 'FaceColor', sat(s).baseColor, 'EdgeColor', sat(s).edgeColor);
+			view([0 0])
+			axis equal
+		elseif strcmp(sat(s).satelliteModel, 'enc')
+			nodes = plotSat(sat(s).encpath, [0 0 0 1]);
+			for j = 1:4:length(nodes)
+				nn = (nodes(j:j+3,:))*sat(s).satFactor;
+				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).baseColor, 'EdgeColor', sat(s).edgeColor, 'LineWidth', 2);
+			end
+			view(3)
+			axis equal
+		end
+	end
+
+end % satPrep
 
 % Hide figure nodisplay flag
 if def.nodisplay == 1
@@ -108,7 +150,9 @@ fig.Position(3:4)=[width,height];
 [x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
 globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
 hold on
-plot3(vSatPos(:,1),vSatPos(:,2),vSatPos(:,3))
+for i = 1:length(sat)
+	plot3(sat(s).states(:,11), sat(s).states(:,12), sat(s).states(:,13));
+end
 
 % scaling axes
 xl = xlim*def.borderScale;
@@ -118,14 +162,10 @@ xlim(xl)
 ylim(yl)
 zlim(zl)
 
-% define last frame 
-ie = ceil(endframe/def.step);
 
 % initializing vector to save frames
 frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
-gtlength = ceil(ie * def.groundTrackLenght);
-gt=nan(gtlength,3);
 
 
 %% printing progress bar 
@@ -149,79 +189,115 @@ for i=1:ie
 	dt = t-datetime('2000-01-01 12:00:00') ;
 	rot_ang = 360.9856123035484 * days(dt) + 280.46; % [deg]
 
-%% Calculate satellite and camera position vectors
-	% velocity vector
-    velocity = [vSatVel(i,1)*def.velVecLength,vSatVel(i,2)*def.velVecLength,vSatVel(i,3)*def.velVecLength];
-	vn = velocity./norm(velocity);
-	vfront = vn*def.zoom;
-    % position of satelite
-    satPos = [vSatPos(i,1) vSatPos(i,2) vSatPos(i,3)];
-    sn = satPos./norm(satPos);
-    satView = satPos+sn*def.zoom;
-
-    orbPlaneA = [vSatPos(1,1) vSatPos(1,2) vSatPos(1,3)] ;
-    orbPlaneB = [vSatPos(2,1) vSatPos(2,2) vSatPos(2,3)] ;
-    orbPlaneC = [vSatPos(3,1) vSatPos(3,2) vSatPos(3,3)] ;
-    orbNorm = cross(orbPlaneB-orbPlaneA,orbPlaneC-orbPlaneA);
-	clear orbPlaneA orbPlaneB orbPlaneC
+%% Plot earth
+    grs80 = referenceEllipsoid('grs80','m');
     
-    % Plot orbit as blue line
-    plot3(vSatPosFull(:,1),vSatPosFull(:,2),vSatPosFull(:,3))
-    hold on
+    ax = axesm(	'globe','Geoid',grs80,'Grid','off', ...
+				'GLineWidth',1,'GLineStyle','-', ...
+        		'Gcolor','black','Galtitude',100);
 
-	if def.showGroundTrack
-		for f = 1:gtlength-1
-			ff=gtlength+1-f;
-			gt(ff,:) = gt(ff-1,:);
-		end
+	% Load Earth image for texture map
+    image_file = def.earthfile;
+    cdata = imread(image_file);
 
-		gt(1,:) = sn*r_earth+1e4*sn;
-		plot3(gt(:,1),gt(:,2),gt(:,3), 'color', 'green', 'linewidth', 2)
+%% rendering earth
+	[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
+	globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+	hold on
+
+	if def.showEarth == 1
+		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
+		
+	%% Rotate Earth
+		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
 	end
 
+
+%% Calculate satellite and camera position vectors
+
+	for s = 1:length(sat)
+		satPos = [sat(s).states(i,11), sat(s).states(i,12), sat(s).states(i,13)];
+		velocity = [sat(s).states(i,8), sat(s).states(i,9), sat(s).states(i,10)]*sat(s).velVecLength;
+		sn = satPos./norm(satPos);
+
+		if sat(s).showGroundTrack
+			for f = 1:sat(s).gtlength-1
+				ff=sat(s).gtlength+1-f;
+				sat(s).gt(ff,:) = sat(s).gt(ff-1,:);
+			end
+
+			sat(s).gt(1,:) = sn*r_earth+1e4*sn;
+			plot3(sat(s).gt(:,1),sat(s).gt(:,2),sat(s).gt(:,3), 'color', 'green', 'linewidth', 2)
+		end
 %% Plot satellite 
 
-%% No sat
-	if strcmp(def.satelliteModel, 'none') 
-    plot3(satPos(1), satPos(2), satPos(3),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
+		%Plot orbit as blue line
+		plot3(sat(s).states_full(:,11),sat(s).states_full(:,12),sat(s).states_full(:,13))
+		hold on
 
-	% 3D sphere when no satellite
-    [x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
-    ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
-    
-%% STL sat
-	elseif strcmp(def.satelliteModel, 'stl')
-		points = fv.Points*def.satFactor+satPos;
-		ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-		set(ship, 'FaceColor', def.baseColor, 'EdgeColor', def.edgeColor);
+		%% No sat
+		if strcmp(sat(s).satelliteModel, 'none') 
+		plot3(satPos(1), satPos(2), satPos(3),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
 
-		rotVec = rad2deg(HPS_quat2euler(vSatOri(i,:)));
-		rotate(ship, [1 0 0], rotVec(1), satPos);
-		rotate(ship, [0 1 0], rotVec(2), satPos);
-		rotate(ship, [0 0 1], rotVec(3), satPos);
-
-		%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
-
-%% ENC sat
-	elseif strcmp(def.satelliteModel, 'enc')
+		% 3D sphere when no satellite
 		[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
 		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
-		nodes = plotSat(def.encpath, vSatOri(i,:));
-		for j = 1:4:length(nodes)
-			nn = (nodes(j:j+3,:))*def.satFactor+satPos;
-			fill3(nn(:,1),nn(:,2),nn(:,3), def.baseColor, 'EdgeColor', def.edgeColor);
+		
+		%% STL sat
+		elseif strcmp(sat(s).satelliteModel, 'stl')
+			points = fv.Points*sat(s).satFactor+satPos;
+			ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+			set(ship, 'FaceColor', sat(s).baseColor, 'EdgeColor', sat(s).edgeColor);
+
+			rotVec = rad2deg(HPS_quat2euler(vSatOri(i,:)));
+			rotate(ship, [1 0 0], rotVec(1), satPos);
+			rotate(ship, [0 1 0], rotVec(2), satPos);
+			rotate(ship, [0 0 1], rotVec(3), satPos);
+
+			%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
+
+		%% ENC sat
+		elseif strcmp(sat(s).satelliteModel, 'enc')
+			[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
+			ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
+			nodes = plotSat(sat(s).encpath, sat(s).states(i,4:7));
+			for j = 1:4:length(nodes)
+				nn = (nodes(j:j+3,:))*sat(s).satFactor+satPos;
+				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).baseColor, 'EdgeColor', sat(s).edgeColor);
+			end
+		end
+
+
+		%% Plot velocity Vec
+		if sat(s).showVelocity
+			quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', [0.4902 0.2353 0.5961])
+		end
+
+
+	
+%% Plot satellite coord system
+
+			axis_length = sat(s).satVecLength*r_earth/2; %length of coordinate system axis
+
+			q_k = sat(s).states(i,4:7);
+			
+			%transform inertial kos to body fixed by quaternion multiplication
+			x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
+			y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
+			z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
+
+			x_axis_body = x_axis_bodyUnit*axis_length;
+			y_axis_body = y_axis_bodyUnit*axis_length;
+			z_axis_body = z_axis_bodyUnit*axis_length;
+
+			if sat(s).showSatCoordinates
+			quiver3(satPos(1), satPos(2), satPos(3), x_axis_body(1), x_axis_body(2),x_axis_body(3), 'linewidth', 2, 'color', [0 0.4471 0.7412])
+			quiver3(satPos(1), satPos(2), satPos(3), y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', [0.9059 0.2980 0.2353])
+			quiver3(satPos(1), satPos(2), satPos(3), z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', [0.4667 0.6745 0.1882])
 		end
 	end
-
-
-%% Plot velocity Vec
-    %plot velocity vector
-	if def.showVelocity
-		quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', [0.4902 0.2353 0.5961])
-	end
-     
+    
 %% Plot ECI
-
 
 	if def.showECI
 		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
@@ -239,52 +315,23 @@ for i=1:ie
 		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', [0.4667 0.6745 0.1882])
 	end
 	
-%% Plot satellite coord system
-
-		axis_length = def.satVecLength*r_earth/2; %length of coordinate system axis
-
-		q_k = vSatOri(i,:);
-		
-		%transform inertial kos to body fixed by quaternion multiplication
-		x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
-		y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
-		z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
-
-		x_axis_body = x_axis_bodyUnit*axis_length;
-		y_axis_body = y_axis_bodyUnit*axis_length;
-		z_axis_body = z_axis_bodyUnit*axis_length;
-
-		if def.showSatCoordinates
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),x_axis_body(1),x_axis_body(2),x_axis_body(3),'linewidth',2,'color', [0 0.4471 0.7412])
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', [0.9059 0.2980 0.2353])
-		quiver3(vSatPos(i,1),vSatPos(i,2),vSatPos(i,3),z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', [0.4667 0.6745 0.1882])
-	end
-    
-%% Plot earth
-    
-    grs80 = referenceEllipsoid('grs80','m');
-    
-    ax = axesm(	'globe','Geoid',grs80,'Grid','off', ...
-				'GLineWidth',1,'GLineStyle','-', ...
-        		'Gcolor','black','Galtitude',100);
-
-	% Load Earth image for texture map
-    image_file = def.earthfile;
-    cdata = imread(image_file);
-
-	
-%% rendering earth
-		[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
-		globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
-
-	if def.showEarth == 1
-		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
-		
-	%% Rotate Earth
-		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
-	end
-
 %% Set Viewpoint 
+
+
+    satPos = [sat(def.mainSat).states(i,11) sat(def.mainSat).states(i,12) sat(def.mainSat).states(i,13)];
+	velocity = [sat(def.mainSat).states(i,8), sat(def.mainSat).states(i,9), sat(def.mainSat).states(i,10)]*sat(def.mainSat).velVecLength;
+	sn = satPos./norm(satPos);
+
+	axis_length = sat(def.mainSat).satVecLength*r_earth/2; %length of coordinate system axis
+
+	q_k = sat(def.mainSat).states(i,4:7);
+			
+	%transform inertial kos to body fixed by quaternion multiplication
+	x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
+	y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
+	z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
+
+
     switch def.camMode 
 		case 'earthCentered'
 			%turning off axis

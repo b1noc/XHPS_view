@@ -221,13 +221,17 @@ for i=1:ie
 		sn = satPos./norm(satPos);
 
 		if sat(s).showGroundTrack
+			rotmat = [cosd(rot_ang) -sind(rot_ang) 0; sind(rot_ang) cosd(rot_ang) 0; 0 0 1];
+			
+			sat(s).gt = sat(s).gt*inv(rotmat);
 			for f = 1:sat(s).gtlength-1
 				ff=sat(s).gtlength+1-f;
 				sat(s).gt(ff,:) = sat(s).gt(ff-1,:);
 			end
-
-			sat(s).gt(1,:) = sn*r_earth+1e4*sn;
+			sat(s).gt(1,:) = sn*r_earth+1e5*sn;
 			plot3(sat(s).gt(:,1),sat(s).gt(:,2),sat(s).gt(:,3), 'color', 'green', 'linewidth', 2)
+
+			sat(s).gt = sat(s).gt*rotmat;
 		end
 %% Plot satellite 
 
@@ -375,9 +379,9 @@ for i=1:ie
 	if def.progress 
 		progress = floor(i*100/ie);
 		prog = floor(progress * .6);
-		inv = ceil(100*.6 - prog);
+		inve= ceil(100*.6 - prog);
 		fprintf(repmat('\b',1,progLength));
-		progLength = fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inv), progress);
+		progLength = fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inve), progress);
 	end
 
 %% Generate frame from current plot

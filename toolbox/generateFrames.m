@@ -8,40 +8,40 @@ runStart = tic;
 % Defining default values for unspecified user settings
 def = struct(	'debug', 0, ...	
 				'nodisplay', 0, ...	
-				'step', 1, ...
 				'progress', 1, ...
-				'resolution', '1080p', ...
+				'step', 1, ...
 				'sim_step', 10, ...
 				't_start', 730486, ...
 				'camMode', 'earthCentered', ...
-				'borderScale', 1, ...
+				'mainSat', 1, ...
+				'resolution', '1080p', ...
+				'borderScale', 1.2, ...
 				'viewAngle', [0 0], ...
 				'rollAngle', 0, ...
 				'zoom', 1, ...
-				'showEarth', 1, ...
-				'earthTransparency', 1, ...
+				'earth', 'on', ...
 				'earthPanels', 180, ...
-				'showECEF', 1, ...
-				'showECI', 1, ...
+				'earthTransparency', 1, ...
+				'ecef', 0, ...
+				'eci', 0, ...
 				'earthVecLength', 1.5, ... 
-				'earthfile', strcat(relpath,'/res/earth.jpg'), ...
-				'mainSat', 1 ...
+				'earthfile', strcat(relpath,'/res/earth.jpg') ...
 			);
 
 defsat = struct('states', 'none', ...
-				'satelliteModel', 'none', ...
-				'satFactor', 1, ...
-				'baseColor', 'yellow', ...
+				'satModel', 'none', ...
+				'name', '', ...
+				'satScale', 1, ...
+				'color', 'yellow', ...
 				'edgeColor', 'black', ...
-				'showGroundTrack', 1, ...
+				'groundTrack', 0, ...
 				'groundTrackLenght', 1, ...
-				'showVelocity', 1, ...
-				'showSatCoordinates', 1, ...
+				'satCoordinates', 1, ...
+				'velocityVec', 1, ...
 				'satVecLength', 1, ... 
 				'velVecLength', 500, ... 
-				'name', '', ...
-				'encpath', strcat(relpath,'/res/'), ...
-				'stlfile', strcat(relpath,'/res/jeb.stl') ...
+				'encPath', strcat(relpath,'/res/'), ...
+				'stlFile', strcat(relpath,'/res/jeb.stl') ...
 			);
 
 % Overwriting default settings with specified user settings
@@ -100,7 +100,7 @@ for s = 1:length(sat)
 	sat(s).states = sat(s).states(1:def.step:endframe,:);
 
 %% Load 3d model file
-	if strcmp(sat(s).satelliteModel,'stl')
+	if strcmp(sat(s).satModel,'stl')
 		fv = stlread(sat(s).stlfile);
 	end
 
@@ -119,17 +119,17 @@ for s = 1:length(sat)
 			title(sat(s).name)
 		end
 		
-		if strcmp(sat(s).satelliteModel, 'stl')
-			points=fv.Points*sat(s).satFactor;
+		if strcmp(sat(s).satModel, 'stl')
+			points=fv.Points*sat(s).satScale;
 			ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-			set(ship, 'FaceColor', sat(s).baseColor, 'EdgeColor', sat(s).edgeColor);
+			set(ship, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
 			view([0 0])
 			axis equal
-		elseif strcmp(sat(s).satelliteModel, 'enc')
-			nodes = plotSat(sat(s).encpath, [0 0 0 1]);
+		elseif strcmp(sat(s).satModel, 'enc')
+			nodes = plotSat(sat(s).encPath, [0 0 0 1]);
 			for j = 1:4:length(nodes)
-				nn = (nodes(j:j+3,:))*sat(s).satFactor;
-				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).baseColor, 'EdgeColor', sat(s).edgeColor, 'LineWidth', 2);
+				nn = (nodes(j:j+3,:))*sat(s).satScale;
+				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).color, 'EdgeColor', sat(s).edgeColor, 'LineWidth', 2);
 			end
 			view(3)
 			axis equal
@@ -203,15 +203,17 @@ for i=1:ie
     cdata = imread(image_file);
 
 %% rendering earth
-	[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
-	globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
-	hold on
+	if ~strcmp(def.earth, 'off') 
+		[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
+		globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+		hold on
 
-	if def.showEarth == 1
-		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
+		if strcmp(def.earth, 'on') 
+			set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
 		
-	%% Rotate Earth
-		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
+			%% Rotate Earth
+			rotate(globe, [0 0 1], rot_ang, [0 0 0]);
+		end
 	end
 
 
@@ -222,7 +224,7 @@ for i=1:ie
 		velocity = [sat(s).states(i,8), sat(s).states(i,9), sat(s).states(i,10)]*sat(s).velVecLength;
 		sn = satPos./norm(satPos);
 
-		if sat(s).showGroundTrack
+		if sat(s).groundTrack
 			rotmat = [cosd(rot_ang) -sind(rot_ang) 0; sind(rot_ang) cosd(rot_ang) 0; 0 0 1];
 			
 			sat(s).gt = sat(s).gt*inv(rotmat);
@@ -242,7 +244,7 @@ for i=1:ie
 		hold on
 
 		%% No sat
-		if strcmp(sat(s).satelliteModel, 'none') 
+		if strcmp(sat(s).satModel, 'none') 
 		plot3(satPos(1), satPos(2), satPos(3),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
 
 		% 3D sphere when no satellite
@@ -250,10 +252,10 @@ for i=1:ie
 		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
 		
 		%% STL sat
-		elseif strcmp(sat(s).satelliteModel, 'stl')
-			points = fv.Points*sat(s).satFactor+satPos;
+		elseif strcmp(sat(s).satModel, 'stl')
+			points = fv.Points*sat(s).satScale+satPos;
 			ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-			set(ship, 'FaceColor', sat(s).baseColor, 'EdgeColor', sat(s).edgeColor);
+			set(ship, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
 
 			rotVec = rad2deg(HPS_quat2euler(vSatOri(i,:)));
 			rotate(ship, [1 0 0], rotVec(1), satPos);
@@ -263,19 +265,19 @@ for i=1:ie
 			%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
 
 		%% ENC sat
-		elseif strcmp(sat(s).satelliteModel, 'enc')
+		elseif strcmp(sat(s).satModel, 'enc')
 			[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
 			ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
-			nodes = plotSat(sat(s).encpath, sat(s).states(i,4:7));
+			nodes = plotSat(sat(s).encPath, sat(s).states(i,4:7));
 			for j = 1:4:length(nodes)
-				nn = (nodes(j:j+3,:))*sat(s).satFactor+satPos;
-				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).baseColor, 'EdgeColor', sat(s).edgeColor);
+				nn = (nodes(j:j+3,:))*sat(s).satScale+satPos;
+				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).color, 'EdgeColor', sat(s).edgeColor);
 			end
 		end
 
 
 		%% Plot velocity Vec
-		if sat(s).showVelocity
+		if sat(s).velocityVec
 			quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', [0.4902 0.2353 0.5961])
 		end
 
@@ -296,7 +298,7 @@ for i=1:ie
 			y_axis_body = y_axis_bodyUnit*axis_length;
 			z_axis_body = z_axis_bodyUnit*axis_length;
 
-			if sat(s).showSatCoordinates
+			if sat(s).satCoordinates
 			quiver3(satPos(1), satPos(2), satPos(3), x_axis_body(1), x_axis_body(2),x_axis_body(3), 'linewidth', 2, 'color', [0 0.4471 0.7412])
 			quiver3(satPos(1), satPos(2), satPos(3), y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', [0.9059 0.2980 0.2353])
 			quiver3(satPos(1), satPos(2), satPos(3), z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', [0.4667 0.6745 0.1882])
@@ -305,7 +307,7 @@ for i=1:ie
     
 %% Plot ECI
 
-	if def.showECI
+	if def.eci
 		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
 		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', [0.4980 0.7020 0.8353])
 		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', [0.9451 0.5804 0.5412])
@@ -313,7 +315,7 @@ for i=1:ie
 	end
 
 %% Plot ECEF
-	if def.showECEF
+	if def.ecef
 		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
 		ecef = HPS_computeDCMFromRotationAngle( deg2rad(rot_ang), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
 		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', [0 0.4471 0.7412])
@@ -403,3 +405,4 @@ end % forloop
 	fprintf('\nIt plotted:\n%03d steps\n%07.3fs total duration\n%07.3fs average step duration\n', length(loopStop), toc(runStart), mean(loopStop))
 fprintf('\n')
 end % function
+

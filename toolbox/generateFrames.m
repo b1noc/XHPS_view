@@ -1,5 +1,6 @@
 function frameVec = generateFrames(sat, settings)
 
+runStart = tic;
 % getting relative path of toolbox files
 [relpath,~,~] = fileparts(mfilename('fullpath'));
 
@@ -169,13 +170,14 @@ frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
 
 %% printing progress bar 
-if def.progress 
+if def.progress && ~def.debug > 0
 	fprintf('Progress:\n');
 	progLength = fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
 
 %% Main loop
 for i=1:ie
+	loopStart = tic;
     clf
     
 %% Calculate time and rotation
@@ -376,7 +378,7 @@ for i=1:ie
 	paddingY = 1/wh(4)*10;
 	annotation('textbox', [paddingX, paddingY, relWidth, relHeight], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
 
-	if def.progress 
+	if def.progress && ~def.debug > 0
 		progress = floor(i*100/ie);
 		prog = floor(progress * .6);
 		inve= ceil(100*.6 - prog);
@@ -386,14 +388,18 @@ for i=1:ie
 
 %% Generate frame from current plot
     if def.debug == 1
+		loopStop = toc(loopStart);
+		fprintf('One step ran in %.3f seconds', loopStop)
 		drawnow;
 		break;
 	elseif def.debug == 2
+		loopStop(i) = toc(loopStart);
 		drawnow;
 	else
+		loopStop(i) = toc(loopStart);
 		frameVec(i) = getframe(fig, [0 0 width height]);
     end
-    
 end % forloop
+	fprintf('\nIt plotted:\n%03d steps\n%07.3fs total duration\n%07.3fs average step duration\n', length(loopStop), toc(runStart), mean(loopStop))
 fprintf('\n')
 end % function

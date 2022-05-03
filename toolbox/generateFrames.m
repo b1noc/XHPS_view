@@ -1,11 +1,12 @@
 function frameVec = generateFrames(sat, settings)
 
-runStart = tic;
+% start timer
+runStart = tic; 
+
 % getting relative path of toolbox files
 [relpath,~,~] = fileparts(mfilename('fullpath'));
 
-%% Setting settings
-% Defining default values for unspecified user settings
+% Default values of unspecified user settings
 def = struct(	'debug', 0, ...	
 				'nodisplay', 0, ...	
 				'progress', 1, ...
@@ -65,7 +66,7 @@ for s = 2:length(sat)
 	end
 end
 
-%% Defining vido quality based on user settings
+% Defining vido quality based on user settings
 switch def.resolution
 	case '720p'
 		width = 1280;
@@ -78,10 +79,7 @@ switch def.resolution
         height = 2160;
 end
 
-
-
-%% SATELLITE PREP
-% finding the shortest states matrix
+% locating the shortest states matrix
 lshort = length(sat(1).states);
 for s = 2:length(sat)
 	lsat = length(sat(s).states);
@@ -90,25 +88,25 @@ for s = 2:length(sat)
 	end
 end
 
-%% Reading in states
 % define last frame 
 endframe=lshort;
 ie = ceil(endframe/def.step);
+
 
 for s = 1:length(sat)
 	sat(s).states_full = sat(s).states;
 	sat(s).states = sat(s).states(1:def.step:endframe,:);
 
-%% Load 3d model file
+	% Load 3d model file
 	if strcmp(sat(s).satModel,'stl')
 		fv = stlread(sat(s).stlfile);
 	end
 
+	% define groundtrack length
 	sat(s).gtlength = ceil(ie * sat(s).groundTrackLenght);
 	sat(s).gt=nan(sat(s).gtlength,3);
 
-%% DEBUG-mode
-% Display loaded stl file in figure (DEBUG-mode)
+	% Display loaded stl file in figure 
 	if def.debug == 1
 		figure
 		hold on
@@ -135,55 +133,81 @@ for s = 1:length(sat)
 			axis equal
 		end
 	end
+end 
 
-end % satPrep
-
-% Hide figure nodisplay flag
+% Hide figure when nodisplay flag is set
 if def.nodisplay == 1
     fig = figure('visible','off');
 else
     fig = figure;
 end
 
-%% Prepare looprun
-r_earth=6771000;
-fig.Position(3:4)=[width,height];
-[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
-globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
 hold on
-for i = 1:length(sat)
-	plot3(sat(s).states(:,11), sat(s).states(:,12), sat(s).states(:,13));
-end
-
-% scaling axes
-xl = xlim*def.borderScale;
-yl = ylim*def.borderScale;
-zl = zlim*def.borderScale;
-xlim(xl)
-ylim(yl)
-zlim(zl)
-
 
 % initializing vector to save frames
 frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
 
-
-
-%% printing progress bar 
+% printing progress bar 
 if def.progress && ~def.debug > 0
 	fprintf('Progress:\n');
 	progLength = fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Prepare looprun
+fig.Position(3:4)=[width,height];
+
+% Plot earth
+grs80 = referenceEllipsoid('grs80','m');
+
+% rendering earth
+r_earth=6771000;
+% TODO: switch catch
+if ~strcmp(def.earth, 'off') 
+	axesm(	'globe','Geoid',grs80,'Grid','off', 'GLineWidth',1,'GLineStyle','-', 'Gcolor','black','Galtitude',100);
+	[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
+	globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+	globeX = globe.XData;
+	globeY = globe.YData;
+	globeZ = globe.ZData;
+
+	if strcmp(def.earth, 'on') 
+		% Load Earth image for texture map
+		image_file = def.earthfile;
+		cdata = imread(image_file);
+		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
+	end
+end
+axis equal
+
+% Plot sattellite
+for s = 1:length(sat)
+	% Plot orbit
+	sat(s).plot_orbit = plot3(sat(s).states_full(:,11),sat(s).states_full(:,12),sat(s).states_full(:,13), 'color', '#D95319');
+
+	if strcmp(sat(s).satModel, 'none') 
+		sat(s).plot_sat = plot3(0, 0, 0,'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2);
+
+	elseif strcmp(sat(s).satModel, 'enc')
+		et = load([sat(s).encPath, 'et.txt.']);
+		nt = load([sat(s).encPath, 'nt.txt.']);
+		faces_matrix = [et(:,6) et(:,7) et(:,8) et(:,9)];
+		sat(s).plot_sat = patch('Vertices', nt, 'Faces', faces_matrix);
+		sat(s).plot_sat.FaceColor = 'y';
+		sat(s).x = sat(s).plot_sat.XData;
+		sat(s).y = sat(s).plot_sat.YData;
+		sat(s).z = sat(s).plot_sat.ZData;
+	end
+end
+
 %% Main loop
 for i=1:ie
 	loopStart = tic;
-    clf
     
-%% Calculate time and rotation
-	% Calculating index k from original states matrix
+	% Calculating timestamp of current state 
     k=i*def.step - def.step;
-	% Calculating timestamp of current state by adding x*sim_step to the starttime
     tstr = datestr(def.t_start + k * seconds(def.sim_step));
     t = def.t_start + seconds(k * def.sim_step);
 
@@ -191,34 +215,41 @@ for i=1:ie
 	dt = t-datetime('2000-01-01 12:00:00') ;
 	rot_ang = 360.9856123035484 * days(dt) + 280.46; % [deg]
 
-%% Plot earth
-    grs80 = referenceEllipsoid('grs80','m');
-    
-    ax = axesm(	'globe','Geoid',grs80,'Grid','off', ...
-				'GLineWidth',1,'GLineStyle','-', ...
-        		'Gcolor','black','Galtitude',100);
+	%% Rotate Earth
+	if ~strcmp(def.earth, 'off')
+		globe.XData = globeX;
+		globe.YData = globeY;
+		globe.ZData = globeZ;
+		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
+	end
 
-	% Load Earth image for texture map
-    image_file = def.earthfile;
-    cdata = imread(image_file);
+	% position sat
+	for s = 1:length(sat)
+		satPos = [sat(s).states(i,11), sat(s).states(i,12), sat(s).states(i,13)];
 
-%% rendering earth
-	if ~strcmp(def.earth, 'off') 
-		[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
-		globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
-		hold on
+		if strcmp(sat(s).satModel, 'none') 
+			sat(s).plot_sat.XData =satPos(1);
+			sat(s).plot_sat.YData =satPos(2);
+			sat(s).plot_sat.ZData =satPos(3);
 
-		if strcmp(def.earth, 'on') 
-			set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
-		
-			%% Rotate Earth
-			rotate(globe, [0 0 1], rot_ang, [0 0 0]);
+		elseif strcmp(sat(s).satModel, 'enc') 
+			r_com = [1.5615 0.9720 -0.3310]./2;
+
+			set(sat(s).plot_sat, ...
+				'XData', (sat(s).x-r_com(1))*sat(s).satScale+satPos(1), ...
+				'YData', (sat(s).y-r_com(2))*sat(s).satScale+satPos(2), ...
+				'ZData', (sat(s).z-r_com(3))*sat(s).satScale+satPos(3)  ...
+			);
+
+			rotVec = rad2deg(HPS_quat2euler(sat(s).states(i,4:7)));
+			rotate(sat(s).plot_sat, [1 0 0], rotVec(1), satPos);
+			rotate(sat(s).plot_sat, [0 1 0], rotVec(2), satPos);
+			rotate(sat(s).plot_sat, [0 0 1], rotVec(3), satPos);
 		end
 	end
 
-
-%% Calculate satellite and camera position vectors
-
+% Calculate satellite and camera position vectors
+%{
 	for s = 1:length(sat)
 		satPos = [sat(s).states(i,11), sat(s).states(i,12), sat(s).states(i,13)];
 		velocity = [sat(s).states(i,8), sat(s).states(i,9), sat(s).states(i,10)]*sat(s).velVecLength;
@@ -237,44 +268,6 @@ for i=1:ie
 
 			sat(s).gt = sat(s).gt*rotmat;
 		end
-%% Plot satellite 
-
-		%Plot orbit as blue line
-		plot3(sat(s).states_full(:,11),sat(s).states_full(:,12),sat(s).states_full(:,13))
-		hold on
-
-		%% No sat
-		if strcmp(sat(s).satModel, 'none') 
-		plot3(satPos(1), satPos(2), satPos(3),'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2)
-
-		% 3D sphere when no satellite
-		[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
-		ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
-		
-		%% STL sat
-		elseif strcmp(sat(s).satModel, 'stl')
-			points = fv.Points*sat(s).satScale+satPos;
-			ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-			set(ship, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
-
-			rotVec = rad2deg(HPS_quat2euler(vSatOri(i,:)));
-			rotate(ship, [1 0 0], rotVec(1), satPos);
-			rotate(ship, [0 1 0], rotVec(2), satPos);
-			rotate(ship, [0 0 1], rotVec(3), satPos);
-
-			%ship = patch(fv,'FaceColor', [0.8 0.8 1.0], 'EdgeColor', 'none',        'FaceLighting',    'gouraud', 'AmbientStrength', 0.15);
-
-		%% ENC sat
-		elseif strcmp(sat(s).satModel, 'enc')
-			[x, y, z] = ellipsoid(satPos(1),satPos(2),satPos(3), 50, 50, 50, 20);
-			ship=surf(x,y,z, 'FaceColor', 'none', 'EdgeColor', 'none');
-			nodes = plotSat(sat(s).encPath, sat(s).states(i,4:7));
-			for j = 1:4:length(nodes)
-				nn = (nodes(j:j+3,:))*sat(s).satScale+satPos;
-				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).color, 'EdgeColor', sat(s).edgeColor);
-			end
-		end
-
 
 		%% Plot velocity Vec
 		if sat(s).velocityVec
@@ -283,7 +276,7 @@ for i=1:ie
 
 
 	
-%% Plot satellite coord system
+% Plot satellite coord system
 
 			axis_length = sat(s).satVecLength*r_earth/2; %length of coordinate system axis
 
@@ -322,7 +315,8 @@ for i=1:ie
 		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', [0.9059 0.2980 0.2353])
 		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', [0.4667 0.6745 0.1882])
 	end
-	
+
+%}	
 %% Set Viewpoint 
 
 
@@ -340,12 +334,12 @@ for i=1:ie
 	z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
 
 
+    %campos('manual')
+    %view(0, 0);
     switch def.camMode 
 		case 'earthCentered'
-			%turning off axis
-			set(gca, 'Visible', 'off')
+			axis image vis3d off
 			camtarget([0 0 0])
-			%campos([0 -r_earth*def.zoom*10 0])
 			campos([0 -1*(1/def.zoom)*1e8 0])
 			camorbit(90+def.viewAngle(1),def.viewAngle(2))
             camroll(def.rollAngle)
@@ -369,10 +363,6 @@ for i=1:ie
        
 
 %% Equalize axes and Framesize
-    xlim(xl);
-    ylim(yl);
-    zlim(zl);
-
 	wh = get(fig, 'Position');
 	relWidth = 1/wh(3)*180;
 	relHeight = 1/wh(4)*25;

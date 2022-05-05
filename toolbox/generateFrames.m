@@ -39,7 +39,7 @@ defsat = struct('states', 'none', ...
 				'groundTrackLenght', 1, ...
 				'satCoordinates', 1, ...
 				'velocityVec', 1, ...
-				'satVecLength', 1, ... 
+				'axisLength', 1, ... 
 				'velVecLength', 500, ... 
 				'encPath', strcat(relpath,'/res/'), ...
 				'stlFile', strcat(relpath,'/res/jeb.stl') ...
@@ -51,22 +51,32 @@ for n = 1:length(diff)
 	def.(diff{n}) = settings.(diff{n});
 end
 
-% Overwriting default settings of each satellite with user specified settings
-%TODO: simplify
+% Creating not specified keys with default keys 
 diff = setxor(fieldnames(sat(1)),fieldnames(defsat));
 for n = 1:length(diff)
 	sat(1).(diff{n}) = defsat.(diff{n});
 end
+
+% Overwrite empty sat values with default values for each satellite
 keys = fieldnames(defsat);
-for s = 2:length(sat)
-	for n = 2:length(keys)
+for s = 1:length(sat)
+	for n = 1:length(keys)
 		if isempty(sat(s).(keys{n}))
 			sat(s).(keys{n}) = defsat.(keys{n});	
 		end
 	end
 end
 
-% Defining vido quality based on user settings
+
+% Open figure (hidden when nodisplay flag is set)
+if def.nodisplay == 1
+    fig = figure('visible','off');
+else
+    fig = figure;
+end
+hold on
+
+% Defining vido size based on selected quality
 switch def.resolution
 	case '720p'
 		width = 1280;
@@ -79,70 +89,14 @@ switch def.resolution
         height = 2160;
 end
 
-% locating the shortest states matrix
-lshort = length(sat(1).states);
-for s = 2:length(sat)
-	lsat = length(sat(s).states);
-	if lsat < lshort
-		lshort = lsat;
-	end
-end
+% setting windowsize
+fig.Position(3:4)=[width,height];
+axis equal
 
-% define last frame 
-endframe=lshort;
+% define last frame by shortest matrix
+shortestStates =  sat.states;
+endframe = length(shortestStates);
 ie = ceil(endframe/def.step);
-
-
-for s = 1:length(sat)
-	sat(s).states_full = sat(s).states;
-	sat(s).states = sat(s).states(1:def.step:endframe,:);
-
-	% Load 3d model file
-	if strcmp(sat(s).satModel,'stl')
-		fv = stlread(sat(s).stlfile);
-	end
-
-	% define groundtrack length
-	sat(s).gtlength = ceil(ie * sat(s).groundTrackLenght);
-	sat(s).gt=nan(sat(s).gtlength,3);
-
-	% Display loaded stl file in figure 
-	if def.debug == 1
-		figure
-		hold on
-
-		if isempty(sat(s).name)
-			title(['Satellite ' num2str(s,'%1d')])
-		else
-			title(sat(s).name)
-		end
-		
-		if strcmp(sat(s).satModel, 'stl')
-			points=fv.Points*sat(s).satScale;
-			ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-			set(ship, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
-			view([0 0])
-			axis equal
-		elseif strcmp(sat(s).satModel, 'enc')
-			nodes = plotSat(sat(s).encPath, [0 0 0 1]);
-			for j = 1:4:length(nodes)
-				nn = (nodes(j:j+3,:))*sat(s).satScale;
-				fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).color, 'EdgeColor', sat(s).edgeColor, 'LineWidth', 2);
-			end
-			view(3)
-			axis equal
-		end
-	end
-end 
-
-% Hide figure when nodisplay flag is set
-if def.nodisplay == 1
-    fig = figure('visible','off');
-else
-    fig = figure;
-end
-
-hold on
 
 % initializing vector to save frames
 frameVec = struct('cdata', cell(1, ie), 'colormap', cell(1, ie));
@@ -153,54 +107,99 @@ if def.progress && ~def.debug > 0
 	progLength = fprintf(['\n[' repmat('.',1,60) '] 0%%\n']);
 end
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Prepare looprun
-fig.Position(3:4)=[width,height];
-
 % Plot earth
+r_earth=6771000;
 grs80 = referenceEllipsoid('grs80','m');
 
-% rendering earth
-r_earth=6771000;
-% TODO: switch catch
-if ~strcmp(def.earth, 'off') 
-	axesm(	'globe','Geoid',grs80,'Grid','off', 'GLineWidth',1,'GLineStyle','-', 'Gcolor','black','Galtitude',100);
+if ~strcmp(def.earth, 'off') && ~def.earth == 0
+	axesm(	'globe','Geoid',grs80,'Grid','off', ...
+			'GLineWidth',1,'GLineStyle','-', ...
+			'Gcolor','black','Galtitude',100);
 	[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
 	globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
 	globeX = globe.XData;
 	globeY = globe.YData;
 	globeZ = globe.ZData;
 
-	if strcmp(def.earth, 'on') 
-		% Load Earth image for texture map
+	if ~strcmp(def.earth, 'grid') 
 		image_file = def.earthfile;
 		cdata = imread(image_file);
-		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, 'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
+		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, ...
+			'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
 	end
 end
-axis equal
 
-% Plot sattellite
+% Plot Satellite
 for s = 1:length(sat)
+	sat(s).states_full = sat(s).states;
+	sat(s).states = sat(s).states(1:def.step:endframe,:);
+
+	% Load 3d model file
+	if strcmp(sat(s).satModel,'stl')
+		fv = stlread(sat(s).stlfile);
+	end
+
+	% calculate groundtrack length
+	sat(s).gtlength = ceil(ie * sat(s).groundTrackLenght);
+	sat(s).gt=nan(sat(s).gtlength,3);
+
 	% Plot orbit
-	sat(s).plot_orbit = plot3(sat(s).states_full(:,11),sat(s).states_full(:,12),sat(s).states_full(:,13), 'color', '#D95319');
+	sat(s).plot_orbit = plot3(sat(s).states_full(:,11), ...
+							  sat(s).states_full(:,12), ...
+							  sat(s).states_full(:,13), ...
+							  'color', '#D95319');
 
 	if strcmp(sat(s).satModel, 'none') 
-		sat(s).plot_sat = plot3(0, 0, 0,'color', 'red', 'Marker', 'o', 'MarkerSize', 7 , 'linewidth',2);
+		sat(s).plot_sat = plot3(0, 0, 0, 'color', 'red', 'Marker', 'o', ...
+										 'MarkerSize', 7 , 'linewidth',2);
 
 	elseif strcmp(sat(s).satModel, 'enc')
 		et = load([sat(s).encPath, 'et.txt.']);
 		nt = load([sat(s).encPath, 'nt.txt.']);
 		faces_matrix = [et(:,6) et(:,7) et(:,8) et(:,9)];
 		sat(s).plot_sat = patch('Vertices', nt, 'Faces', faces_matrix);
-		sat(s).plot_sat.FaceColor = 'y';
+		sat(s).plot_sat.FaceColor = sat(s).color;
 		sat(s).x = sat(s).plot_sat.XData;
 		sat(s).y = sat(s).plot_sat.YData;
 		sat(s).z = sat(s).plot_sat.ZData;
 	end
+
+	if sat(s).satCoordinates
+		sat(s).x_axis = quiver3(0, 0, 0, 1, 0, 0, 'linewidth', 2, 'color', [0 0.4471 0.7412]);
+		sat(s).y_axis = quiver3(0, 0 ,0, 0, 1, 0, 'linewidth',2,'color', [0.9059 0.2980 0.2353]);
+		sat(s).z_axis = quiver3(0, 0, 0, 0, 0, 1, 'linewidth',2,'color', [0.4667 0.6745 0.1882]);
+	end
 end
+
+
+%TODO: enable
+	% Display loaded stl file in figure 
+	%if def.debug == 1
+		%figure
+		%hold on
+
+		%if isempty(sat(s).name)
+			%title(['Satellite ' num2str(s,'%1d')])
+		%else
+			%title(sat(s).name)
+		%end
+		
+		%if strcmp(sat(s).satModel, 'stl')
+			%points=fv.Points*sat(s).satScale;
+			%ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+			%set(ship, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
+			%view([0 0])
+			%axis equal
+		%elseif strcmp(sat(s).satModel, 'enc')
+			%nodes = plotSat(sat(s).encPath, [0 0 0 1]);
+			%for j = 1:4:length(nodes)
+				%nn = (nodes(j:j+3,:))*sat(s).satScale;
+				%fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).color, 'EdgeColor', sat(s).edgeColor, 'LineWidth', 2);
+			%end
+			%view(3)
+			%axis equal
+		%end
+	%end
 
 %% Main loop
 for i=1:ie
@@ -216,14 +215,14 @@ for i=1:ie
 	rot_ang = 360.9856123035484 * days(dt) + 280.46; % [deg]
 
 	%% Rotate Earth
-	if ~strcmp(def.earth, 'off')
+	if ~strcmp(def.earth, 'off') && ~def.earth == 0
 		globe.XData = globeX;
 		globe.YData = globeY;
 		globe.ZData = globeZ;
 		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
 	end
 
-	% position sat
+	% Position sat
 	for s = 1:length(sat)
 		satPos = [sat(s).states(i,11), sat(s).states(i,12), sat(s).states(i,13)];
 
@@ -233,7 +232,7 @@ for i=1:ie
 			sat(s).plot_sat.ZData =satPos(3);
 
 		elseif strcmp(sat(s).satModel, 'enc') 
-			r_com = [1.5615 0.9720 -0.3310]./2;
+			r_com = [1.5615 0.9720 -0.3310];
 
 			set(sat(s).plot_sat, ...
 				'XData', (sat(s).x-r_com(1))*sat(s).satScale+satPos(1), ...
@@ -245,6 +244,36 @@ for i=1:ie
 			rotate(sat(s).plot_sat, [1 0 0], rotVec(1), satPos);
 			rotate(sat(s).plot_sat, [0 1 0], rotVec(2), satPos);
 			rotate(sat(s).plot_sat, [0 0 1], rotVec(3), satPos);
+		end
+
+		
+		q_k = sat(s).states(i,4:7);
+
+		%transform inertial kos to body fixed by quaternion multiplication
+		x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
+		y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
+		z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
+
+		% Move vectros
+		if sat(s).satCoordinates
+			sat(s).x_axis.XData = satPos(1);
+			sat(s).x_axis.YData = satPos(2);
+			sat(s).x_axis.ZData = satPos(3);
+			sat(s).x_axis.UData = x_axis_bodyUnit(1)*sat(2).axisLength*sat(s).satScale*10;
+			sat(s).x_axis.VData = x_axis_bodyUnit(2)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).x_axis.WData = x_axis_bodyUnit(3)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).y_axis.XData = satPos(1);
+			sat(s).y_axis.YData = satPos(2);
+			sat(s).y_axis.ZData = satPos(3);
+			sat(s).y_axis.UData = y_axis_bodyUnit(1)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).y_axis.VData = y_axis_bodyUnit(2)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).y_axis.WData = y_axis_bodyUnit(3)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).z_axis.XData = satPos(1);
+			sat(s).z_axis.YData = satPos(2);
+			sat(s).z_axis.ZData = satPos(3);
+			sat(s).z_axis.UData = z_axis_bodyUnit(1)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).z_axis.VData = z_axis_bodyUnit(2)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).z_axis.WData = z_axis_bodyUnit(3)*sat(s).axisLength*sat(s).satScale*10;
 		end
 	end
 
@@ -276,28 +305,11 @@ for i=1:ie
 
 
 	
-% Plot satellite coord system
-
-			axis_length = sat(s).satVecLength*r_earth/2; %length of coordinate system axis
-
-			q_k = sat(s).states(i,4:7);
-			
-			%transform inertial kos to body fixed by quaternion multiplication
-			x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
-			y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
-			z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
-
-			x_axis_body = x_axis_bodyUnit*axis_length;
-			y_axis_body = y_axis_bodyUnit*axis_length;
-			z_axis_body = z_axis_bodyUnit*axis_length;
-
-			if sat(s).satCoordinates
-			quiver3(satPos(1), satPos(2), satPos(3), x_axis_body(1), x_axis_body(2),x_axis_body(3), 'linewidth', 2, 'color', [0 0.4471 0.7412])
-			quiver3(satPos(1), satPos(2), satPos(3), y_axis_body(1),y_axis_body(2),y_axis_body(3),'linewidth',2,'color', [0.9059 0.2980 0.2353])
-			quiver3(satPos(1), satPos(2), satPos(3), z_axis_body(1),z_axis_body(2),z_axis_body(3),'linewidth',2,'color', [0.4667 0.6745 0.1882])
 		end
 	end
+	%}
     
+	%TODO
 %% Plot ECI
 
 	if def.eci
@@ -316,7 +328,6 @@ for i=1:ie
 		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', [0.4667 0.6745 0.1882])
 	end
 
-%}	
 %% Set Viewpoint 
 
 
@@ -324,7 +335,6 @@ for i=1:ie
 	velocity = [sat(def.mainSat).states(i,8), sat(def.mainSat).states(i,9), sat(def.mainSat).states(i,10)]*sat(def.mainSat).velVecLength;
 	sn = satPos./norm(satPos);
 
-	axis_length = sat(def.mainSat).satVecLength*r_earth/2; %length of coordinate system axis
 
 	q_k = sat(def.mainSat).states(i,4:7);
 			
@@ -362,7 +372,7 @@ for i=1:ie
     end
        
 
-%% Equalize axes and Framesize
+	% Calculate position of Textbox
 	wh = get(fig, 'Position');
 	relWidth = 1/wh(3)*180;
 	relHeight = 1/wh(4)*25;
@@ -370,6 +380,7 @@ for i=1:ie
 	paddingY = 1/wh(4)*10;
 	annotation('textbox', [paddingX, paddingY, relWidth, relHeight], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
 
+	% Plot progressbar
 	if def.progress && ~def.debug > 0
 		progress = floor(i*100/ie);
 		prog = floor(progress * .6);
@@ -378,20 +389,22 @@ for i=1:ie
 		progLength = fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inve), progress);
 	end
 
-%% Generate frame from current plot
+
+	% Generate frame from current plot
     if def.debug == 1
+		drawnow;
 		loopStop = toc(loopStart);
 		fprintf('One step ran in %.3f seconds', loopStop)
-		drawnow;
 		break;
 	elseif def.debug == 2
-		loopStop(i) = toc(loopStart);
 		drawnow;
-	else
 		loopStop(i) = toc(loopStart);
+	else
 		frameVec(i) = getframe(fig, [0 0 width height]);
+		loopStop(i) = toc(loopStart);
     end
 end % forloop
+	%TODO: fprint
 	fprintf('\nIt plotted:\n%03d steps\n%07.3fs total duration\n%07.3fs average step duration\n', length(loopStop), toc(runStart), mean(loopStop))
 fprintf('\n')
 end % function

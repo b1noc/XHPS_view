@@ -67,7 +67,6 @@ for s = 1:length(sat)
 	end
 end
 
-
 % Open figure (hidden when nodisplay flag is set)
 if def.nodisplay == 1
     fig = figure('visible','off');
@@ -91,7 +90,7 @@ end
 
 % setting windowsize
 fig.Position(3:4)=[width,height];
-axis equal
+axis equal vis3d off
 
 % define last frame by shortest matrix
 shortestStates =  sat.states;
@@ -112,21 +111,46 @@ r_earth=6771000;
 grs80 = referenceEllipsoid('grs80','m');
 
 if ~strcmp(def.earth, 'off') && ~def.earth == 0
-	axesm(	'globe','Geoid',grs80,'Grid','off', ...
+	axesm(	'globe','Geoid',grs80,'Grid','on', ...
 			'GLineWidth',1,'GLineStyle','-', ...
 			'Gcolor','black','Galtitude',100);
-	[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, def.earthPanels);
-	globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', 0.5*[1 1 1]);
+	[x, y, z] = ellipsoid(0, 0, 0, r_earth, r_earth, r_earth, ...
+						  def.earthPanels);
+
+	globe = surf(x,y,-z, 'FaceColor', 'none', 'EdgeColor', .5*[1 1 1]);
 	globeX = globe.XData;
 	globeY = globe.YData;
 	globeZ = globe.ZData;
 
+	% Render earth and disable grid
 	if ~strcmp(def.earth, 'grid') 
 		image_file = def.earthfile;
 		cdata = imread(image_file);
 		set(globe, 'FaceColor', 'texturemap', 'CData', cdata, ...
 			'FaceAlpha', def.earthTransparency, 'EdgeColor', 'none');
 	end
+end
+
+
+% Plot ECI
+earthAxisLength = def.earthVecLength*r_earth; 
+if def.eci
+	quiver3(0, 0, 0, earthAxisLength, 0, 0, ...
+			'linewidth',3, 'color', [0.4980 0.7020 0.8353])
+	quiver3(0, 0, 0, 0, earthAxisLength, 0, ...
+			'linewidth', 3, 'color', [0.9451 0.5804 0.5412])
+	quiver3(0, 0, 0, 0, 0, earthAxisLength, ...
+			'linewidth', 3, 'color', [0.5098 0.8784 0.6667])
+end
+
+% Plot ECEF
+if def.ecef
+	ecefX = quiver3(0, 0, 0, earthAxisLength, 0, 0, ...
+			'linewidth', 3, 'color', [0 0.4471 0.7412]);
+	ecefY = quiver3(0, 0, 0, 0, earthAxisLength, 0, ...
+			'linewidth', 3, 'color', [0.9059 0.2980 0.2353]);
+	ecefZ = quiver3(0, 0, 0, 0, 0, earthAxisLength, ...
+			'linewidth', 3, 'color', [0.4667 0.6745 0.1882]);
 end
 
 % Plot Satellite
@@ -150,8 +174,10 @@ for s = 1:length(sat)
 							  'color', '#D95319');
 
 	if strcmp(sat(s).satModel, 'none') 
-		sat(s).plot_sat = plot3(0, 0, 0, 'color', 'red', 'Marker', 'o', ...
-										 'MarkerSize', 7 , 'linewidth',2);
+		sat(s).plot_sat = plot3(0, 0, 0, 'color', 'red', ...
+										 'Marker', 'o', ...
+										 'MarkerSize', 7 , ...
+										 'linewidth',2);
 
 	elseif strcmp(sat(s).satModel, 'enc')
 		et = load([sat(s).encPath, 'et.txt.']);
@@ -165,11 +191,24 @@ for s = 1:length(sat)
 	end
 
 	if sat(s).satCoordinates
-		sat(s).x_axis = quiver3(0, 0, 0, 1, 0, 0, 'linewidth', 2, 'color', [0 0.4471 0.7412]);
-		sat(s).y_axis = quiver3(0, 0 ,0, 0, 1, 0, 'linewidth',2,'color', [0.9059 0.2980 0.2353]);
-		sat(s).z_axis = quiver3(0, 0, 0, 0, 0, 1, 'linewidth',2,'color', [0.4667 0.6745 0.1882]);
+		sat(s).x_axis = quiver3(0, 0, 0, 1, 0, 0, 'linewidth', 2, ...
+								'color', [0 0.4471 0.7412]);
+		sat(s).y_axis = quiver3(0, 0 ,0, 0, 1, 0, 'linewidth', 2, ...
+								'color', [0.9059 0.2980 0.2353]);
+		sat(s).z_axis = quiver3(0, 0, 0, 0, 0, 1, 'linewidth', 2, ...
+								'color', [0.4667 0.6745 0.1882]);
+	end
+	if sat(s).velocityVec
+		sat(s).vel_vector = quiver3(0, 0, 0, 1, 0, 0, 'linewidth',2, ...
+									'color', [0.4902 0.2353 0.5961]);
+	end
+
+	if sat(s).groundTrack
+		sat(s).ground_track= [0 0 0];
+		sat(s).ground_plot = plot3( 0, 0, 0, 'color', 'green', 'linewidth', 2);
 	end
 end
+
 
 
 %TODO: enable
@@ -222,9 +261,25 @@ for i=1:ie
 		rotate(globe, [0 0 1], rot_ang, [0 0 0]);
 	end
 
+	% Rotate ECEF coordinate Frame
+	if def.ecef
+		ecefRot = HPS_computeDCMFromRotationAngle( deg2rad(rot_ang), 3 ) * ...
+												   [earthAxisLength, 0, 0; ...
+													0, earthAxisLength, 0; ...
+													0, 0, earthAxisLength];
+		ecefX.UData = ecefRot(1,1);
+		ecefX.VData = ecefRot(1,2);
+		ecefX.WData = ecefRot(1,3);
+		ecefY.UData = ecefRot(2,1);
+		ecefY.VData = ecefRot(2,2);
+		ecefY.WData = ecefRot(2,3);
+	end
+
 	% Position sat
 	for s = 1:length(sat)
-		satPos = [sat(s).states(i,11), sat(s).states(i,12), sat(s).states(i,13)];
+		satPos = [sat(s).states(i,11), ...
+				  sat(s).states(i,12), ...
+				  sat(s).states(i,13)];
 
 		if strcmp(sat(s).satModel, 'none') 
 			sat(s).plot_sat.XData =satPos(1);
@@ -254,118 +309,94 @@ for i=1:ie
 		y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
 		z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
 
-		% Move vectros
+		% Move axis vectors
 		if sat(s).satCoordinates
+			axlen = sat(s).axisLength*sat(s).satScale*10;
 			sat(s).x_axis.XData = satPos(1);
 			sat(s).x_axis.YData = satPos(2);
 			sat(s).x_axis.ZData = satPos(3);
-			sat(s).x_axis.UData = x_axis_bodyUnit(1)*sat(2).axisLength*sat(s).satScale*10;
-			sat(s).x_axis.VData = x_axis_bodyUnit(2)*sat(s).axisLength*sat(s).satScale*10;
-			sat(s).x_axis.WData = x_axis_bodyUnit(3)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).x_axis.UData = x_axis_bodyUnit(1)*axlen;
+			sat(s).x_axis.VData = x_axis_bodyUnit(2)*axlen;
+			sat(s).x_axis.WData = x_axis_bodyUnit(3)*axlen;
 			sat(s).y_axis.XData = satPos(1);
 			sat(s).y_axis.YData = satPos(2);
 			sat(s).y_axis.ZData = satPos(3);
-			sat(s).y_axis.UData = y_axis_bodyUnit(1)*sat(s).axisLength*sat(s).satScale*10;
-			sat(s).y_axis.VData = y_axis_bodyUnit(2)*sat(s).axisLength*sat(s).satScale*10;
-			sat(s).y_axis.WData = y_axis_bodyUnit(3)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).y_axis.UData = y_axis_bodyUnit(1)*axlen;
+			sat(s).y_axis.VData = y_axis_bodyUnit(2)*axlen;
+			sat(s).y_axis.WData = y_axis_bodyUnit(3)*axlen;
 			sat(s).z_axis.XData = satPos(1);
 			sat(s).z_axis.YData = satPos(2);
 			sat(s).z_axis.ZData = satPos(3);
-			sat(s).z_axis.UData = z_axis_bodyUnit(1)*sat(s).axisLength*sat(s).satScale*10;
-			sat(s).z_axis.VData = z_axis_bodyUnit(2)*sat(s).axisLength*sat(s).satScale*10;
-			sat(s).z_axis.WData = z_axis_bodyUnit(3)*sat(s).axisLength*sat(s).satScale*10;
+			sat(s).z_axis.UData = z_axis_bodyUnit(1)*axlen;
+			sat(s).z_axis.VData = z_axis_bodyUnit(2)*axlen;
+			sat(s).z_axis.WData = z_axis_bodyUnit(3)*axlen;
 		end
-	end
 
-% Calculate satellite and camera position vectors
-%{
-	for s = 1:length(sat)
-		satPos = [sat(s).states(i,11), sat(s).states(i,12), sat(s).states(i,13)];
-		velocity = [sat(s).states(i,8), sat(s).states(i,9), sat(s).states(i,10)]*sat(s).velVecLength;
-		sn = satPos./norm(satPos);
+		%% Move velocity vector
+		if sat(s).velocityVec
+			velocity = [sat(s).states(i,8), ...
+						sat(s).states(i,9), ...
+					   	sat(s).states(i,10)];
+			axlen = sat(s).velVecLength*sat(s).satScale/5e2;
+			sat(s).vel_vector.XData = satPos(1);
+			sat(s).vel_vector.YData = satPos(2);
+			sat(s).vel_vector.ZData = satPos(3);
+			sat(s).vel_vector.UData = velocity(1)*axlen;
+			sat(s).vel_vector.VData = velocity(2)*axlen;
+			sat(s).vel_vector.WData = velocity(3)*axlen;
+		end
 
 		if sat(s).groundTrack
-			rotmat = [cosd(rot_ang) -sind(rot_ang) 0; sind(rot_ang) cosd(rot_ang) 0; 0 0 1];
-			
-			sat(s).gt = sat(s).gt*inv(rotmat);
-			for f = 1:sat(s).gtlength-1
-				ff=sat(s).gtlength+1-f;
-				sat(s).gt(ff,:) = sat(s).gt(ff-1,:);
-			end
-			sat(s).gt(1,:) = sn*r_earth+1e5*sn;
-			plot3(sat(s).gt(:,1),sat(s).gt(:,2),sat(s).gt(:,3), 'color', 'green', 'linewidth', 2)
+			sn = satPos./norm(satPos);
+			rotmat = [cosd(rot_ang) -sind(rot_ang) 0; ...
+					  sind(rot_ang) cosd(rot_ang) 0; ...
+					  0 0 1];
 
-			sat(s).gt = sat(s).gt*rotmat;
-		end
+			ground_track = sat(s).ground_track*inv(rotmat);
+			ground_track = [(r_earth+1e5)*sn; ground_track];
 
-		%% Plot velocity Vec
-		if sat(s).velocityVec
-			quiver3(satPos(1), satPos(2), satPos(3),velocity(1),velocity(2),velocity(3),'linewidth',2, 'color', [0.4902 0.2353 0.5961])
-		end
+			gt_len = size(ground_track,1)-1;
+			sat(s).ground_plot.XData = ground_track(1:gt_len,1);
+			sat(s).ground_plot.YData = ground_track(1:gt_len,2);
+			sat(s).ground_plot.ZData = ground_track(1:gt_len,3);
 
-
-	
+			sat(s).ground_track = ground_track*rotmat;
 		end
 	end
-	%}
-    
-	%TODO
-%% Plot ECI
-
-	if def.eci
-		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
-		quiver3(0,0,0,axis_length,0,0,'linewidth',3,'color', [0.4980 0.7020 0.8353])
-		quiver3(0,0,0,0,axis_length,0,'linewidth',3,'color', [0.9451 0.5804 0.5412])
-		quiver3(0,0,0,0,0,axis_length,'linewidth',3,'color', [0.5098 0.8784 0.6667])
-	end
-
-%% Plot ECEF
-	if def.ecef
-		axis_length = def.earthVecLength*r_earth; %length of coordinate system axis
-		ecef = HPS_computeDCMFromRotationAngle( deg2rad(rot_ang), 3 ) * [axis_length, 0, 0; 0, axis_length, 0; 0,0,axis_length];
-		quiver3(0,0,0,ecef(1,1),ecef(1,2),ecef(1,3),'linewidth',3,'color', [0 0.4471 0.7412])
-		quiver3(0,0,0,ecef(2,1),ecef(2,2),ecef(2,3),'linewidth',3,'color', [0.9059 0.2980 0.2353])
-		quiver3(0,0,0,ecef(3,1),ecef(3,2),ecef(3,3),'linewidth',3,'color', [0.4667 0.6745 0.1882])
-	end
-
-%% Set Viewpoint 
 
 
-    satPos = [sat(def.mainSat).states(i,11) sat(def.mainSat).states(i,12) sat(def.mainSat).states(i,13)];
-	velocity = [sat(def.mainSat).states(i,8), sat(def.mainSat).states(i,9), sat(def.mainSat).states(i,10)]*sat(def.mainSat).velVecLength;
+	% Get positional data of mainSat
+    satPos = [sat(def.mainSat).states(i,11) ...
+			  sat(def.mainSat).states(i,12) ...
+			  sat(def.mainSat).states(i,13)];
+
+	velocity = [sat(def.mainSat).states(i,8), ...
+				sat(def.mainSat).states(i,9), ...
+				sat(def.mainSat).states(i,10)];
 	sn = satPos./norm(satPos);
-
-
-	q_k = sat(def.mainSat).states(i,4:7);
 			
 	%transform inertial kos to body fixed by quaternion multiplication
+	q_k = sat(def.mainSat).states(i,4:7);
 	x_axis_bodyUnit = HPS_transformVecByQuatTransposed([1;0;0],q_k);
-	y_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;1;0],q_k);
 	z_axis_bodyUnit = HPS_transformVecByQuatTransposed([0;0;1],q_k);
 
-
-    %campos('manual')
-    %view(0, 0);
+	% Set Viewmode 
+	view([0 0])
     switch def.camMode 
 		case 'earthCentered'
-			axis image vis3d off
 			camtarget([0 0 0])
-			campos([0 -1*(1/def.zoom)*1e8 0])
+			campos([0 -1*(1/def.zoom)*2e8 0])
 			camorbit(90+def.viewAngle(1),def.viewAngle(2))
             camroll(def.rollAngle)
 		case 'satCentered'
-			%turning off axis
-			axis image vis3d off
 			camtarget(satPos)
-			campos(satPos+sn*(1/def.zoom)*1e8)
+			campos(satPos+sn*(1/def.zoom)*2e8)
 			camup(velocity)
 			camroll(def.rollAngle)
 			camorbit(def.viewAngle(1),def.viewAngle(2),'camera')
 		case 'satFixed'
-			%turning off axis
-			axis image vis3d off
 			camtarget(satPos)
-			campos((satPos-z_axis_bodyUnit'*(1/def.zoom)*1e8))
+			campos((satPos-z_axis_bodyUnit'*(1/def.zoom)*2e8))
 			camup(x_axis_bodyUnit')
 			camroll(def.rollAngle)
 			camorbit(def.viewAngle(1),def.viewAngle(2),'camera')
@@ -378,7 +409,8 @@ for i=1:ie
 	relHeight = 1/wh(4)*25;
 	paddingX = 1/wh(3)*10;
 	paddingY = 1/wh(4)*10;
-	annotation('textbox', [paddingX, paddingY, relWidth, relHeight], 'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
+	annotation('textbox', [paddingX, paddingY, relWidth, relHeight], ...
+			   'EdgeColor', 'black', 'BackgroundColor', 'white', 'string', tstr);
 
 	% Plot progressbar
 	if def.progress && ~def.debug > 0
@@ -388,7 +420,6 @@ for i=1:ie
 		fprintf(repmat('\b',1,progLength));
 		progLength = fprintf('\n[%s%s] %d%%', repmat('#',1,prog), repmat('.',1,inve), progress);
 	end
-
 
 	% Generate frame from current plot
     if def.debug == 1
@@ -404,8 +435,12 @@ for i=1:ie
 		loopStop(i) = toc(loopStart);
     end
 end % forloop
-	%TODO: fprint
-	fprintf('\nIt plotted:\n%03d steps\n%07.3fs total duration\n%07.3fs average step duration\n', length(loopStop), toc(runStart), mean(loopStop))
-fprintf('\n')
+
+	% Print statistics
+	fprintf('\nPlotted in:\n')
+	fprintf('% 7d steps\n', length(loopStop))
+	fprintf('% 7.3f total duration [s]\n', toc(runStart))
+	fprintf('% 7.3f average step duration [s]\n\n', mean(loopStop))
+
 end % function
 

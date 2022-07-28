@@ -172,7 +172,7 @@ for s = 1:length(sat)
 
 	% Load 3d model file
 	if strcmp(sat(s).satModel,'stl')
-		fv = stlread(sat(s).stlfile);
+		fv = stlread(sat(s).stlFile);
 	end
 
 	% calculate groundtrack length
@@ -203,6 +203,13 @@ for s = 1:length(sat)
 		sat(s).x = sat(s).plot_sat.XData;
 		sat(s).y = sat(s).plot_sat.YData;
 		sat(s).z = sat(s).plot_sat.ZData;
+
+	elseif strcmp(sat(s).satModel, 'stl')
+		points=fv.Points;
+		sat(s).plot_sat = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
+		set(sat(s).plot_sat, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
+		sat(s).vertices = sat(s).plot_sat.Vertices;
+		sat(s).faces = sat(s).plot_sat.Faces;
 	end
 
 	if sat(s).satCoordinates
@@ -223,7 +230,6 @@ for s = 1:length(sat)
 		sat(s).ground_plot = plot3( 0, 0, 0, 'color', 'green', 'linewidth', 1);
 	end
 end
-
 
 %% Main loop
 for i=1:ie
@@ -281,6 +287,18 @@ for i=1:ie
 			);
 
 			rotVec = rad2deg(HPS_quat2euler(sat(s).states(i,4:7)));
+			rotate(sat(s).plot_sat, [1 0 0], rotVec(1), satPos);
+			rotate(sat(s).plot_sat, [0 1 0], rotVec(2), satPos);
+			rotate(sat(s).plot_sat, [0 0 1], rotVec(3), satPos);
+
+		elseif strcmp(sat(s).satModel, 'stl') 
+
+			sat(s).plot_sat.Vertices = sat(s).vertices*sat(s).satScale+satPos;
+			sat(s).plot_sat.Faces = sat(s).faces;
+
+			sat(s).plot_sat
+			rotVec = rad2deg(HPS_quat2euler(sat(s).states(i,4:7)));
+
 			rotate(sat(s).plot_sat, [1 0 0], rotVec(1), satPos);
 			rotate(sat(s).plot_sat, [0 1 0], rotVec(2), satPos);
 			rotate(sat(s).plot_sat, [0 0 1], rotVec(3), satPos);

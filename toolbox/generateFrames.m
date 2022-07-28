@@ -225,36 +225,6 @@ for s = 1:length(sat)
 end
 
 
-
-%TODO: enable
-	% Display loaded stl file in figure 
-	%if def.debug == 1
-		%figure
-		%hold on
-
-		%if isempty(sat(s).name)
-			%title(['Satellite ' num2str(s,'%1d')])
-		%else
-			%title(sat(s).name)
-		%end
-		
-		%if strcmp(sat(s).satModel, 'stl')
-			%points=fv.Points*sat(s).satScale;
-			%ship = trimesh(fv.ConnectivityList, points(:,1),points(:,2),points(:,3));
-			%set(ship, 'FaceColor', sat(s).color, 'EdgeColor', sat(s).edgeColor);
-			%view([0 0])
-			%axis equal
-		%elseif strcmp(sat(s).satModel, 'enc')
-			%nodes = plotSat(sat(s).encPath, [0 0 0 1]);
-			%for j = 1:4:length(nodes)
-				%nn = (nodes(j:j+3,:))*sat(s).satScale;
-				%fill3(nn(:,1),nn(:,2),nn(:,3), sat(s).color, 'EdgeColor', sat(s).edgeColor, 'LineWidth', 2);
-			%end
-			%view(3)
-			%axis equal
-		%end
-	%end
-
 %% Main loop
 for i=1:ie
 	loopStart = tic;
